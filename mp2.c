@@ -321,8 +321,8 @@ static void register_helper(char * input)
   do_gettimeofday(new_task->start_time);
 
   init_timer(&(new_task->timer_list_));
-  &(new_task->timer_list_)->data = (unsigned long)new_task;
-  &(new_task->timer_list_)->function = timer_handler;
+  &(new_task->timer_list_).data = (unsigned long)new_task;
+  &(new_task->timer_list_).function = timer_handler;
 
   mutex_lock(&mp2_mutex);
   list_for_each(t ,&process_list){
@@ -331,13 +331,12 @@ static void register_helper(char * input)
     {
       list_add_tail(&(new_task->p_list), t);
       mutex_unlock(&mp2_mutex);
-      return 0;
+      return;
     }
 
   }
   list_add_tail(&(new_task->p_list), &process_list);
   mutex_unlock(&mp2_mutex);
-  return 0;
 
 }
 
@@ -369,7 +368,7 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
   list_for_each_entry(container, &process_list, p_list)
   {
      memset(read, 0, 256);//resets read array
-     length= sprintf(read, "%u: %lu, %lu\n", container->pid, container->period, container->Proc_time );
+     length= sprintf(read, "%u: %lu, %lu\n", container->pid, container->period, container->proc_time );
      ctr += length;
      strcat(read_buffer, read);
   }
