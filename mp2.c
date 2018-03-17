@@ -59,7 +59,7 @@ typedef struct mp2_struct
 
 static struct mp2_t * current_task;
 static struct mutex mp2_mutex;
-static struct spinlock_t mp2_spinlock; //timer lock
+static spinlock_t mp2_spinlock; //timer lock
 //https://elixir.bootlin.com/linux/v4.0/source/mm/slab.h#L19
 static struct kmem_cache * k_cache;  //from slab.h
 static struct task_struct * dispatcher; //our thread
@@ -500,7 +500,7 @@ void __exit mp2_exit(void)
    }
 
    //mutex_unlock(&mp2_mutex);
-   remove_proc_entry("status", proc_mp1);
+   remove_proc_entry("status", proc_dir_mp2);
    remove_proc_entry("mp2", NULL);
    if(_workqueue)
     destroy_workqueue(_workqueue);
