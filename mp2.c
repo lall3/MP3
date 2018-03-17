@@ -311,8 +311,8 @@ static int admission_control(char * input, pid_t * pid_)
 static void register_helper(char * input)
 {
   struct list_head * t;
-  struct mp2_t * curr;
-  struct mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
+  mp2_t * curr;
+  mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
   new_task->state = SLEEPING;
@@ -359,7 +359,7 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
   char * read_buffer =NULL;
   char read [256];// might need to be 128
   struct list_head * temp;
-  struct mp2_t * container; //mistake from MP1
+  mp2_t * container; //mistake from MP1
 
   ctr = length = 0;
   //kmalloc for k heap
