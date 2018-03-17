@@ -57,7 +57,7 @@ typedef struct mp2_struct
 //--------------------------------------------------------------------------------------------------------------------------------
 //GLOBAL VARS
 
-static struct mp2_t * my_current_task;
+static mp2_t * my_current_task;
 static struct mutex mp2_mutex;
 static spinlock_t mp2_spinlock; //timer lock
 //https://elixir.bootlin.com/linux/v4.0/source/mm/slab.h#L19
@@ -143,7 +143,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 void timer_handler(unsigned long in)
 {
   unsigned long lock_flags;
-  mpt_2 * curr= (mp2_t* ) in;
+  mp2_t * curr= (mp2_t* ) in;
 
   spin_lock_irqsave(&mp2_spinlock, lock_flags);
   if(curr != my_current_task)
@@ -176,7 +176,7 @@ static void yeild(pid_t pid)
     time_*=1000;
     time_+= (tv->tv_usec - curr->start_time->tv_usec)/1000;
 
-    mod_timer(&(curr->timer_list_), jiffies+ msces_to_jiffies(curr->period - time_));
+    mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
     my_current_task= NULL;
     wake_up_process(dispatcher);
 
