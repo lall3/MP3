@@ -21,6 +21,8 @@
 #include <linux/spinlock.h>
 #include <linux/string.h>
 #include <linux/spinlock.h>
+#include <linux/kthread.h>
+#include <linux/spinlock_types.h>
 
 //defining constants
 #define SLEEPING  0
@@ -37,7 +39,7 @@ MODULE_DESCRIPTION("CS-423 MP2");
 #define DEBUG 1
 
 //MP2 struct
-struct mp2_struct
+typedef struct mp2_struct
 {
   struct task_struct* task_;
   struct timer_list timer_list_;
@@ -55,7 +57,7 @@ struct mp2_struct
 //--------------------------------------------------------------------------------------------------------------------------------
 //GLOBAL VARS
 
-static struct mp2_t current_task;
+static struct mp2_t * current_task;
 static struct mutex mp2_mutex;
 static struct spinlock_t mp2_spinlock; //timer lock
 //https://elixir.bootlin.com/linux/v4.0/source/mm/slab.h#L19
@@ -70,7 +72,7 @@ static int lock=0 ;
 LIST_HEAD(process_list);
 
 //declearing function headers
-static void remove_node_from_list(struct list_head* node);
+static int remove_node_from_list(struct list_head* node);
 static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned long * b);
 static void get_process_node(pid_t pid_, struct list_head * ret);
 void timer_handler(unsigned long in);
@@ -119,7 +121,7 @@ static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned 
 */
 static void get_process_node(pid_t pid_,  struct list_head * ret)
 {
-    list_head * temp1, *temp2;
+    struct list_head * temp1, *temp2;
     mp2_t * curr;
     ret=NULL;
     mutex_lock(&mp2_mutex);
@@ -141,7 +143,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 void timer_handler(unsigned long in)
 {
   unsigned long lock_flags;
-  mpt_t * curr= (mp2_t)* in;
+  mpt_t * curr= (mp2_t* ) in;
 
   spin_lock_irqsave(&mp2_spinlock, lock_flags);
   if(curr != current_task)
@@ -178,7 +180,7 @@ static void yeild(pid_t pid)
     current_task= NULL;
     wake_up_process(dispatcher);
 
-    set_current_state(TASK_UNINTERUPTABLE);
+    set_current_state(TASK_UNINTERRUPTIBLE);
     schedule();
 
 
@@ -224,7 +226,7 @@ static void schedule_next_task(void)
     if(running_task->state == RUNNING)
       running_task->state = READY;
 
-    sparam.schedule_priority=0;//lowest
+    sparam.sched_priority=0;//lowest
     sched_setscheduler(running_task->task_, SCHED_NORMAL ,&sparam);
   }
 
@@ -237,7 +239,7 @@ static void schedule_next_task(void)
 
   //actually adjuting schedular
   printk(KERN_ALERT "NEXT TASK SCHEDULED. PID= %d",next_task->pid);
-  sparam = MAX_PRIORITY;
+  sparam.sched_priority = MAX_PRIORITY;
   //check order
   sched_setscheduler(next_task->task_, SCHED_FIFO ,&sparam);
   do_gettimeofday(next_task->start_time);
@@ -258,7 +260,7 @@ static int scheduler_dispatch (void * data)
     mutex_lock(&mp2_mutex);
     schedule_next_task();
     mutex_unlock(&mp2_mutex);
-    set_current_state(TASK_UNINTERUPTABLE); //might be in yeild
+    set_current_state(TASK_UNINTERRUPTIBLE); //might be in yeild
     schedule();
   }
 
@@ -277,7 +279,7 @@ static int admission_control(char * input, pid_t * pid_)
 {
   unsigned long period_;
   unsigned long p_time;
-  mp2_t tmp;
+  mp2_t * tmp;
   struct list_head * temp_list;
   unsigned long ratio;
 
@@ -291,7 +293,7 @@ static int admission_control(char * input, pid_t * pid_)
     ratio += ((unsigned int)(tmp->proc_time*1000/tmp->period));
   }
 
-  mutex_unlock(mp2_mutex);
+  mutex_unlock(&mp2_mutex);
   if(ratio < 694)
   {
       printk(KERN_ALERT "Admission Passed");
@@ -318,9 +320,9 @@ static void register_helper(char * input)
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
   do_gettimeofday(new_task->start_time);
 
-  init_timer(&(new_tas->timer_list_));
-  &(new_tas->timer_list_)->data = (unsigned long)new_task;
-  &(new_tas->timer_list_)->function = timer_handler;
+  init_timer(&(new_task->timer_list_));
+  &(new_task->timer_list_)->data = (unsigned long)new_task;
+  &(new_task->timer_list_)->function = timer_handler;
 
   mutex_lock(&mp2_mutex);
   list_for_each(t ,&process_list){
@@ -333,7 +335,7 @@ static void register_helper(char * input)
     }
 
   }
-  list_add_tail(&(new_task->p_list), process_list);
+  list_add_tail(&(new_task->p_list), &process_list);
   mutex_unlock(&mp2_mutex);
   return 0;
 
@@ -399,7 +401,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     t_buffer [count]= '\0';
     cmd = t_buffer[0];
 
-    if(!admision_control(t_buffer, &pid_))
+    if(!admission_control(t_buffer, &pid_))
     {
       ret_val=0;
       goto done_write;
@@ -507,7 +509,7 @@ void __exit mp2_exit(void)
    kmem_cache_destroy(k_cache);
 
    mutex_destroy(&mp2_mutex);
-   spin_lock_destroy(&mp2_spinlock);
+  //spin_lock_destroy(&mp2_spinlock);
    printk(KERN_ALERT "MP2 MODULE UNLOADED\n");
 }
 
