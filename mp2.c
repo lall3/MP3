@@ -44,7 +44,7 @@ typedef struct mp2_struct
   struct task_struct* task_;
   struct timer_list timer_list_;
   pid_t pid;
-  unsigned int curr_state;
+  unsigned int state;
   unsigned long period;
   unsigned long proc_time;
   struct list_head p_list;
@@ -57,7 +57,7 @@ typedef struct mp2_struct
 //--------------------------------------------------------------------------------------------------------------------------------
 //GLOBAL VARS
 
-static struct mp2_t * current_task;
+static struct mp2_t * my_current_task;
 static struct mutex mp2_mutex;
 static spinlock_t mp2_spinlock; //timer lock
 //https://elixir.bootlin.com/linux/v4.0/source/mm/slab.h#L19
@@ -92,12 +92,12 @@ static int remove_node_from_list(struct list_head* node)
   //using mutex for critical code
   mutex_lock(&mp2_mutex);
   container = list_entry(node, mp2_t, p_list);
-  if(current_task)
+  if(my_current_task)
   {
-    if (current_task->pid == container->pid)
-      current_task =NULL;
+    if (my_current_task->pid == container->pid)
+      my_current_task =NULL;
   }
-  dek_timer(&(container->timer_list_));
+  del_timer(&(container->timer_list_));
   kmem_cache_free(k_cache, container);
   list_del(node);
   mutex_unlock(&mp2_mutex);
@@ -143,14 +143,14 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 void timer_handler(unsigned long in)
 {
   unsigned long lock_flags;
-  mpt_t * curr= (mp2_t* ) in;
+  mpt_2 * curr= (mp2_t* ) in;
 
   spin_lock_irqsave(&mp2_spinlock, lock_flags);
-  if(curr != current_task)
+  if(curr != my_current_task)
   {
     curr->state = READY;
   }
-  spin_unlock_irqsave(&mp2_spinlock, lock_flags);
+  spin_unlock_irqrestore(&mp2_spinlock, lock_flags);
   wake_up_process(dispatcher);
 }
 
@@ -177,7 +177,7 @@ static void yeild(pid_t pid)
     time_+= (tv->tv_usec - curr->start_time->tv_usec)/1000;
 
     mod_timer(&(curr->timer_list_), jiffies+ msces_to_jiffies(curr->period - time_));
-    current_task= NULL;
+    my_current_task= NULL;
     wake_up_process(dispatcher);
 
     set_current_state(TASK_UNINTERRUPTIBLE);
@@ -203,11 +203,11 @@ static void schedule_next_task(void)
   mp2_t *tmp;
 
   //base case
-  if((!current_task) && list_empty(process_list))
+  if((!my_current_task) && list_empty(&process_list))
     return;
 
   next_task= NULL;
-  running_task = current_task;
+  running_task = my_current_task;
 
   //finding the next task
   list_for_each(iter, &process_list)
@@ -244,8 +244,8 @@ static void schedule_next_task(void)
   sched_setscheduler(next_task->task_, SCHED_FIFO ,&sparam);
   do_gettimeofday(next_task->start_time);
   wake_up_process(next_task->task_);
-  current_task = next_task;
-  current_task->state = RUNNING;
+  my_current_task = next_task;
+  my_current_task->state = RUNNING;
 
 }
 /*
@@ -410,7 +410,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     if(cmd== 'R')
     {
       //register
-      register(t_buffer);
+      register_helper(t_buffer);
       printk(KERN_ALERT "PID %d REGISTERED", &pid_);
     }
     else if(cmd =='Y')
@@ -462,7 +462,7 @@ int __init mp2_init(void)
    proc_dir_status = proc_create("status", 0666, proc_dir_mp2, &mp2_file_ops);
 
    //initializing globals
-   current_task = NULL;
+   my_current_task = NULL;
    spin_lock_init(&mp2_spinlock);
    mutex_init(&mp2_mutex);
 
