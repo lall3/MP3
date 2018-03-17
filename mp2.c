@@ -313,7 +313,7 @@ static void register_helper(char * input)
   struct list_head * t;
   mp2_t * curr;
   mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
-  struct timeval* t_timer;
+  struct timer_list * t_timer;
 
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
