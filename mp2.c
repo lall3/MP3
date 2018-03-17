@@ -391,19 +391,19 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
 {
 
     printk(KERN_ALERT "WRITE FUNCTION REACHED");
-    unsigned long curr_pid ;
+    //unsigned long curr_pid ;
     ssize_t ret_val=-1;
     char * t_buffer;
     char cmd;
     t_buffer = (char *)kmalloc(count +1, GFP_KERNEL);
-    pid_t pid_;
+    pid_t _pid_;
     struct list_head read;
 
     copy_from_user(t_buffer, buffer, count);
     t_buffer [count]= '\0';
     cmd = t_buffer[0];
 
-    if(!admission_control(t_buffer, &pid_))
+    if(!admission_control(t_buffer, &_pid_))
     {
       ret_val=0;
       goto done_write;
@@ -413,20 +413,20 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //register
       register_helper(t_buffer);
-      printk(KERN_ALERT "PID %d REGISTERED", &pid_);
+      printk(KERN_ALERT "PID %d REGISTERED", &_pid_);
     }
     else if(cmd =='Y')
     {
       //yeild
-      yeild(pid_);
-      printk(KERN_ALERT "PID %d YEILD", &pid_);
+      yeild(_pid_);
+      printk(KERN_ALERT "PID %d YEILD", &_pid_);
     }
     else if(cmd =='D')
     {
       //de register
-      get_process_node( pid_ , &read);
+      get_process_node( _pid_ , &read);
       remove_node_from_list(&read);
-      printk(KERN_ALERT "DEREGITER: %d", pid_);
+      printk(KERN_ALERT "DEREGITER: %d", _pid_);
     }
     else
       ret_val=0;
