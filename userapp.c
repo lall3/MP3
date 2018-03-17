@@ -16,7 +16,7 @@ int reg(pid_t pid, unsigned long period, unsigned long proc_time)
         perror ("file doesn't exist\n");
         return -1;
     }
-    int byte_write = fprintf(fp, "R:%d %lu %lu", pid, period, proc_time);
+    int byte_write = fprintf(fp, "R: %d %lu %lu", pid, period, proc_time);
     fclose(fp);
     return byte_write;
 }
@@ -34,7 +34,7 @@ int unreg(pid_t pid)
         perror ("file doesn't exist\n");
         return -1;
     }
-    int byte_write = fprintf(fp, "D:%d", pid);
+    int byte_write = fprintf(fp, "D: %d", pid);
     fclose(fp);
     return byte_write;
 }
@@ -48,7 +48,7 @@ int yield(pid_t pid)
 		perror("file doesn't exist\n");
 		return -1;
 	}
-	int byte_write = fprintf(fp, "Y:%d", pid);
+	int byte_write = fprintf(fp, "Y: %d", pid);
 	fclose(fp);
 	return byte_write;
 }
