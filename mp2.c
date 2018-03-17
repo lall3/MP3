@@ -125,7 +125,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
     mp2_t * curr;
     ret=NULL;
     mutex_lock(&mp2_mutex);
-    list_for_each_safe(temp1, temp2, p_list)
+    list_for_each_safe(temp1, temp2, &process_list)
     {
       curr=list_entry(temp1 , mp2_t , p_list);
       if(pid_ == curr->pid)
@@ -313,6 +313,8 @@ static void register_helper(char * input)
   struct list_head * t;
   mp2_t * curr;
   mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
+  struct timeval* t_timer;
+
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
   new_task->state = SLEEPING;
@@ -321,8 +323,9 @@ static void register_helper(char * input)
   do_gettimeofday(new_task->start_time);
 
   init_timer(&(new_task->timer_list_));
-  &(new_task->timer_list_).data = (unsigned long)new_task;
-  &(new_task->timer_list_).function = timer_handler;
+  t_timer = &(new_task->timer_list_);
+  t_timer->data = (unsigned long)new_task;
+  t_timer->function = timer_handler;
 
   mutex_lock(&mp2_mutex);
   list_for_each(t ,&process_list){
@@ -357,7 +360,7 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
   int ctr, length;
   char * read_buffer =NULL;
   char read [256];// might need to be 128
-  struct list_head * temp;
+  //struct list_head * temp;
   mp2_t * container; //mistake from MP1
 
   ctr = length = 0;
