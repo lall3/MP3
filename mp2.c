@@ -253,7 +253,7 @@ static struct list_head *find_task_node_by_pid(char *pid)
         }
     }
 
-    mutex_unlock(&my_mutex);
+    mutex_unlock(&mp2_mutex);
     return NULL;
 }
 
