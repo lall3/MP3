@@ -89,10 +89,11 @@ static int admission_control(char * input, pid_t * pid_);
 */
 static int remove_node_from_list(struct list_head* node)
 {
-  if(list_empty(&process_list))
-    return 0;
+
   mp2_t * container;
   //using mutex for critical code
+  if(list_empty(&process_list))
+    return 0;
   mutex_lock(&mp2_mutex);
   container = list_entry(node, mp2_t, p_list);
   if(my_current_task)
