@@ -319,7 +319,7 @@ static void register_helper(char * input)
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
   new_task->state = SLEEPING;
-  get_process_node(new_task->pid, &(new_task->task_));
+  get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
   do_gettimeofday(new_task->start_time);
 
@@ -382,7 +382,8 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
 
   kfree(read_buffer);
   *data += ctr;
-  return ctr;
+  ret_val = ctr;
+  return ret_val;
 }
 
 /*
@@ -393,12 +394,12 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
 
     printk(KERN_ALERT "WRITE FUNCTION REACHED");
     //unsigned long curr_pid ;
-    ssize_t ret_val=-1;
+    size_t ret_val=-1;
     char * t_buffer;
     char cmd;
-    t_buffer = (char *)kmalloc(count +1, GFP_KERNEL);
     pid_t _pid_;
     struct list_head read;
+    t_buffer = (char *)kmalloc(count +1, GFP_KERNEL);
 
     copy_from_user(t_buffer, buffer, count);
     t_buffer [count]= '\0';
