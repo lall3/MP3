@@ -315,6 +315,7 @@ static int admission_control(char * input, pid_t * pid_)
   else
   {
     sscanf(input, "%c, %d", &c, pid_);
+    printk (KERN_ALERT "REQUESTED  %c", c);
     return 1;
   }
   mutex_lock(&mp2_mutex);
@@ -435,7 +436,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     lock=1;
     ret_val =-1;
     copy_from_user(t_buffer, buffer, count);
-    printk(KERN_ALERT "WRITE FUNCTION REACHED");
+    //printk(KERN_ALERT "WRITE FUNCTION REACHED");
     t_buffer [count]= '\0';
     cmd = t_buffer[0];
 
@@ -444,6 +445,8 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
       ret_val=0;
       goto done_write;
     }
+
+    printk(KERN_ALERT "COMMAND %c", cmd);
 
     if(cmd== 'R')
     {
@@ -454,6 +457,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     else if(cmd =='Y')
     {
       //yeild
+      printk(KERN_ALERT "starting %u YEILD", _pid_);
       yeild(_pid_);
       printk(KERN_ALERT "PID %u YEILD", _pid_);
     }
@@ -505,7 +509,7 @@ int __init mp2_init(void)
    my_current_task = NULL;
 
    //add function name
-   dispatcher = kthread_create( scheduler_dispatch , NULL , "MP2");
+   dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
    //slab accolator, edit this with proper arguments
    k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
 
