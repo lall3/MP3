@@ -182,55 +182,6 @@ void timer_handler(unsigned long in)
   wake_up_process(dispatcher);
 }
 
-/*
-* yields process
-* helper function , linked to file write
-*/
-static void yeild(pid_t pid)
-{
-    mp2_t * curr= NULL;
-    struct list_head  * pointer ;
-    unsigned long time_;
-    struct timeval tv;
-    printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
-    //get the pointer to the process
-    //pointer = NULL;
-
-    get_process_node2(pid, curr);
-    /*if(pointer == NULL)
-    {
-      printk(KERN_ALERT "Herin lies the error");
-      return;
-    }
-    curr= list_entry(pointer, mp2_t, p_list);
-    if(curr == NULL)
-    {
-      printk(KERN_ALERT "PID : %u not found while yeilding", pid);
-      goto fin_yeild;
-    }*/
-
-    printk(KERN_ALERT "FOUND (PID %u) Yeilding", pid);
-    curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
-    do_gettimeofday(&tv);
-printk(KERN_ALERT "TIMER STUFF 189");
-    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
-printk(KERN_ALERT "TIMER STUFF 191");
-    mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
-printk(KERN_ALERT "TIMER STUFF 192");
-    set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
-    my_current_task= NULL;
-
-
-    printk(KERN_ALERT "TIMER STUFF DONE");
-    fin_yeild:
-    wake_up_process(dispatcher);
-    set_current_state(TASK_UNINTERRUPTIBLE);
-    schedule();
-
-
-}
-
-
 
 
 static struct list_head *find_task_node_by_pid(char *pid)
@@ -256,6 +207,60 @@ static struct list_head *find_task_node_by_pid(char *pid)
     mutex_unlock(&mp2_mutex);
     return NULL;
 }
+
+
+
+/*
+* yields process
+* helper function , linked to file write
+*/
+static void yeild(pid_t pid)
+{
+    mp2_t * curr= NULL;
+    struct list_head  * pointer ;
+    unsigned long time_;
+    struct timeval tv;
+    printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
+    //get the pointer to the process
+    //pointer = NULL;
+
+    //get_process_node2(pid, curr);
+    /*if(pointer == NULL)
+    {
+      printk(KERN_ALERT "Herin lies the error");
+      return;
+    }*/
+    pointer = find_task_node_by_pid(pid);
+    curr= list_entry(pointer, mp2_t, p_list);
+    if(curr == NULL)
+    {
+      printk(KERN_ALERT "PID : %u not found while yeilding", pid);
+      goto fin_yeild;
+    }
+
+    printk(KERN_ALERT "FOUND (PID %u) Yeilding", pid);
+    curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
+    do_gettimeofday(&tv);
+printk(KERN_ALERT "TIMER STUFF 189");
+    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
+printk(KERN_ALERT "TIMER STUFF 191");
+    mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
+printk(KERN_ALERT "TIMER STUFF 192");
+    set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
+    my_current_task= NULL;
+
+
+    printk(KERN_ALERT "TIMER STUFF DONE");
+    fin_yeild:
+    wake_up_process(dispatcher);
+    set_current_state(TASK_UNINTERRUPTIBLE);
+    schedule();
+
+
+}
+
+
+
 
 
 
