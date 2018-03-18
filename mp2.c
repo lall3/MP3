@@ -214,37 +214,9 @@ void wakeup_timer_handler(unsigned long arg)
 // We store the parsed information in the call-by-reference parameters
 void _read_process_info(char *info, pid_t *pid, unsigned long *period, unsigned long *proc_time)
 {
-    int i = 0;
-    char *pch;
-    char *dataHolder = (char*)kmalloc(strlen(info)+1, GFP_KERNEL);
-    char *start_pos = dataHolder;
-	if(dataHolder)
-    {
-        strcpy(dataHolder, info);
-    }
-
-    pch = strsep(&dataHolder, " ");
-
-    // parse user input and store it into the node
-    for(i = 0; i < 3 && pch!=NULL; i ++)
-    {
-        if(i==0)
-        {
-            sscanf(pch, "%u", pid);
-        }
-        else if(i==1)
-        {
-            sscanf(pch, "%lu", period);
-        }
-        else
-        {
-            sscanf(pch, "%lu", proc_time);
-        }
-		//kfree(pch);
-        pch = strsep(&dataHolder, " ,");
-    }
-	kfree(start_pos);
-}
+  char c;
+  sscanf(input, "%c, %d, %lu, %lu", &c, pid, period, proc_time);
+  }
 
 
 // Called when a new self-defined task node is allocated
