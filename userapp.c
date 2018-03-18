@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sched.h>
 #define PROC_TIME 1000
 #define PROC_FILE "/proc/mp2/status"
 
