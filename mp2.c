@@ -213,7 +213,7 @@ static struct list_head *find_task_node_by_pid(char *pid)
 /*
 * yields process
 * helper function , linked to file write
-*/
+*//*
 static void yeild( char * pid)
 {
     mp2_t * curr= NULL;
@@ -229,7 +229,7 @@ static void yeild( char * pid)
     {
       printk(KERN_ALERT "Herin lies the error");
       return;
-    }*/
+    }*//*
     pointer = find_task_node_by_pid(pid);
     curr= list_entry(pointer, mp2_t, p_list);
     if(curr == NULL)
@@ -257,9 +257,32 @@ printk(KERN_ALERT "TIMER STUFF 192");
     schedule();
 
 
+}*/
+
+static int _yield_handler(char *pid)
+{
+
+
+	mp2_t *yield_task;
+    struct list_head *yield_pos;
+	struct timeval curr_time;
+	unsigned long actual_proc_time;
+	yield_pos = find_task_node_by_pid(pid);
+    yield_task = list_entry(yield_pos, mp2_t, p_list);
+
+	yield_task->state = SLEEPING;
+	do_gettimeofday(&curr_time);
+	actual_proc_time = (curr_time.tv_sec*1000 - yield_task->start_time->tv_sec*1000) + (curr_time.tv_usec/1000 - yield_task->start_time->tv_usec /1000);
+	mod_timer(&(yield_task->timer_list_), jiffies + msecs_to_jiffies(yield_task->period - actual_proc_time));
+	set_task_state(yield_task->task_, TASK_UNINTERRUPTIBLE);
+	current_running_task = NULL;
+	wake_up_process(dispatcher);
+
+	set_current_state(TASK_UNINTERRUPTIBLE);
+	schedule();
+
+	return 0;
 }
-
-
 
 
 
