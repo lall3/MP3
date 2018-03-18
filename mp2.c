@@ -77,7 +77,7 @@ static int remove_node_from_list(struct list_head* node);
 static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned long * b);
 static void get_process_node(pid_t pid_, struct list_head * ret);
 void timer_handler(unsigned long in);
-static void yeild(pid_t pid);
+static void yeild(char * pid);
 static void schedule_next_task(void);
 static int admission_control(char * input, pid_t * pid_);
 
