@@ -238,7 +238,7 @@ static void yeild( char * pid)
       goto fin_yeild;
     }
 
-    //printk(KERN_ALERT "FOUND (PID %u) Yeilding", pid);
+    printk(KERN_ALERT "FOUND (PID ) Yeilding");
     curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
     do_gettimeofday(&tv);
 printk(KERN_ALERT "TIMER STUFF 189");
