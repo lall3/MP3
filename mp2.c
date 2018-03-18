@@ -44,7 +44,6 @@ typedef struct mp2_struct
 {
   struct task_struct* task_;
   struct timer_list timer_list_;
-  pid_t pid;
   unsigned int state;
   unsigned long period;
   unsigned long proc_time;
@@ -52,6 +51,7 @@ typedef struct mp2_struct
   //truct timespec * ts;
   struct timeval* start_time;//start time of program
   unsigned long runtime;
+  pid_t pid;
 
 }mp2_t;
 
@@ -147,7 +147,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 /*
 * returns pointer to node of given pid as param
 */
-static struct list_head* get_process_node2(pid_t pid_)
+static void get_process_node2(pid_t pid_,  mp_t * ret)
 {
     struct list_head * temp1, *temp2;
     mp2_t * curr;
@@ -158,13 +158,11 @@ static struct list_head* get_process_node2(pid_t pid_)
       curr=list_entry(temp1 , mp2_t , p_list);
       if(pid_ == curr->pid)
       {
-        mutex_unlock(&mp2_mutex);
-        return temp1;
+        ret = curr;
         break;
       }
     }
     mutex_unlock(&mp2_mutex);
-    return NULL;
 }
 
 /*
@@ -197,9 +195,9 @@ static void yeild(pid_t pid)
     printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
     //pointer = NULL;
-    pointer= get_process_node2(pid);
-    //get_process_node(pid, pointer);
-    if(pointer == NULL)
+
+    get_process_node2(pid, curr);
+    /*if(pointer == NULL)
     {
       printk(KERN_ALERT "Herin lies the error");
       return;
@@ -209,7 +207,7 @@ static void yeild(pid_t pid)
     {
       printk(KERN_ALERT "PID : %u not found while yeilding", pid);
       goto fin_yeild;
-    }
+    }*/
 
     printk(KERN_ALERT "FOUND (PID %u) Yeilding", pid);
     curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
