@@ -187,16 +187,14 @@ static void yeild(pid_t pid)
     curr-> state= SLEEPING;
     do_gettimeofday(&tv);
 
-    time_= tv.tv_sec - curr->start_time->tv_sec;
-    time_*=1000;
-    time_+= (tv.tv_usec - curr->start_time->tv_usec)/1000;
+    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
 
     mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
     set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
     my_current_task= NULL;
 
 
-
+    printk(KERN_ALERT "TIMER STUFF DONE", pid);
     fin_yeild:
     wake_up_process(dispatcher);
     set_current_state(TASK_UNINTERRUPTIBLE);
