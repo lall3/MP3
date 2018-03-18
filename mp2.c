@@ -518,7 +518,7 @@ void __exit mp2_exit(void)
   //when making list_head, use that name
   list_for_each_entry_safe(temp1, temp2, &process_list, p_list ){
     list_del(&(temp1->p_list));
-    del_timer( &temp1->timer_list_ );
+    del_timer( &(temp1->timer_list_) );
     kmem_cache_free(k_cache, temp1);
    }
 
