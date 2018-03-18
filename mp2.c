@@ -214,13 +214,13 @@ static struct list_head *find_task_node_by_pid(char *pid)
 * yields process
 * helper function , linked to file write
 */
-static void yeild(pid_t pid)
+static void yeild( char * pid)
 {
     mp2_t * curr= NULL;
     struct list_head  * pointer ;
     unsigned long time_;
     struct timeval tv;
-    printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
+    //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
     //pointer = NULL;
 
@@ -234,11 +234,11 @@ static void yeild(pid_t pid)
     curr= list_entry(pointer, mp2_t, p_list);
     if(curr == NULL)
     {
-      printk(KERN_ALERT "PID : %u not found while yeilding", pid);
+      //printk(KERN_ALERT "PID : %u not found while yeilding", pid);
       goto fin_yeild;
     }
 
-    printk(KERN_ALERT "FOUND (PID %u) Yeilding", pid);
+    //printk(KERN_ALERT "FOUND (PID %u) Yeilding", pid);
     curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
     do_gettimeofday(&tv);
 printk(KERN_ALERT "TIMER STUFF 189");
@@ -417,7 +417,7 @@ static void register_helper(char * input)
   printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
   new_task->state = SLEEPING; //changed
   //get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
-  new_task->task_ = find_task_node_by_pid(new_task->pid);
+  new_task->task_ = find_task_by_pid(new_task->pid);
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
   do_gettimeofday(new_task->start_time);
 
@@ -524,7 +524,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //yeild
       printk(KERN_ALERT "starting %u YEILD", _pid_);
-      yeild(_pid_);
+      yeild(t_buffer +2);
       printk(KERN_ALERT "PID %u YEILD", _pid_);
     }
     else if(cmd =='D')
