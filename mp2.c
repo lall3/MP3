@@ -429,12 +429,13 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     char cmd;
     pid_t _pid_;
     struct list_head read;
-    t_buffer = (char *)kmalloc(count +1, GFP_KERNEL);
+    t_buffer = (char *)kmalloc(120, GFP_KERNEL);
 
     printk(KERN_ALERT "WRITE FUNCTION REACHED");
     lock=1;
     ret_val =-1;
     copy_from_user(t_buffer, buffer, count);
+    printk(KERN_ALERT "WRITE FUNCTION REACHED");
     t_buffer [count]= '\0';
     cmd = t_buffer[0];
 
@@ -534,13 +535,16 @@ void __exit mp2_exit(void)
    #endif
    //mutex_lock(&mp2_mutex);
 
+//mem leak_________________FIX!!!!!!!!!!
   //spin_lock(&mp2_spinlock);
   //when making list_head, use that name
+  /*
   list_for_each_safe(temp1, temp2, &process_list){
     remove_node_from_list(temp1);
    }
    //spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
+   */
    remove_proc_entry("status", proc_dir_mp2);
    remove_proc_entry("mp2", NULL);
 
