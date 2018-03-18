@@ -302,7 +302,7 @@ static int admission_control(char * input, pid_t * pid_)
   }
   else
   {
-    sscanf(input, "%c, %d", &c, pid);
+    sscanf(input, "%c, %d", &c, pid_);
     return 1;
   }
   mutex_lock(&mp2_mutex);
