@@ -147,7 +147,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 /*
 * returns pointer to node of given pid as param
 */
-static void get_process_node2(pid_t pid_,  mp_t * ret)
+static void get_process_node2(pid_t pid_,  mp2_t * ret)
 {
     struct list_head * temp1, *temp2;
     mp2_t * curr;
