@@ -394,7 +394,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
 
     printk(KERN_ALERT "WRITE FUNCTION REACHED");
     //unsigned long curr_pid ;
-    size_t ret_val=-1;
+    int ret_val;
     char * t_buffer;
     char cmd;
     pid_t _pid_;
@@ -402,6 +402,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     t_buffer = (char *)kmalloc(count +1, GFP_KERNEL);
 
     lock=1;
+    ret_val =-1;
     copy_from_user(t_buffer, buffer, count);
     t_buffer [count]= '\0';
     cmd = t_buffer[0];
@@ -439,7 +440,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     if(ret_val ==-1)
       *data = -1;
 
-    lock=0;  
+    lock=0;
     return ret_val;
 
 }
