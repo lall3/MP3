@@ -240,7 +240,7 @@ static void schedule_next_task(void)
     sched_setscheduler(running_task ->task_, SCHED_NORMAL, &sparam);
     if(next_task && next_task->state==READY)
     {
-      print(KERN_ALERT "starting (switching bterween tasks)%u -> %u", my_current_task->pid, next_task->pid);
+      printk(KERN_ALERT "starting (switching bterween tasks)%u -> %u", my_current_task->pid, next_task->pid);
       sparam.sched_priority = MAX_PRIORITY;
       //check order
       sched_setscheduler(next_task->task_, SCHED_FIFO ,&sparam);
