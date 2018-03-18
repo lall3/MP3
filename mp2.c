@@ -515,12 +515,12 @@ void __exit mp2_exit(void)
    #endif
    //mutex_lock(&mp2_mutex);
 
-  spinlock(&mp2_spinlock);
+  spin_lock(&mp2_spinlock);
   //when making list_head, use that name
   list_for_each_safe(temp1, temp2, &process_list){
     remove_node_from_list(temp1);
    }
-   spinunlock(&mp2_spinlock);
+   spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
    remove_proc_entry("status", proc_dir_mp2);
    remove_proc_entry("mp2", NULL);
