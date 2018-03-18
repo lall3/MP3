@@ -430,6 +430,7 @@ static int admission_control(char * input, pid_t * pid_)
 */
 static void register_helper(char * input)
 {
+  /*
   struct list_head * t;
   mp2_t * curr;
   mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
@@ -462,10 +463,49 @@ static void register_helper(char * input)
   }
   list_add_tail(&(new_task->p_list), &process_list);
   mutex_unlock(&mp2_mutex);
-
+*/
 }
 
+static void init_node(mp2_t* new_task, char* buf)
+{
+    struct timer_list *curr_timer;
 
+    // set up member variables
+    extract_data(buf, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
+
+	new_task -> state = SLEEPING_STATE;
+    new_task -> task_ = find_task_by_pid(new_task->pid);
+    new_task -> start_time = (struct timeval*)kmalloc(sizeof(struct timeval), GFP_KERNEL);
+    do_gettimeofday(new_task->start_time);
+
+    // create task wakeup timer
+    curr_timer = &(new_task->timer_list_);
+    init_timer(curr_timer);
+    curr_timer->data = (unsigned long)new_task;
+    curr_timer->function = timer_handler;
+}
+
+static int add_to_list(char *buf)
+{
+	struct list_head *pos;
+	mp2_t *entry;
+	mp2_t *new_task = kmem_cache_alloc(k_cache, GFP_KERNEL);
+
+	init_node(new_task, buf);
+
+	mutex_lock(&mp2_mutex);
+    list_for_each(pos, &process_list) {
+        entry = list_entry(pos, mp2_t, p_list);
+        if (entry->period > new_task->period) {
+		    list_add_tail(&new_task->p_list, pos);
+			mutex_unlock(&mp2_mutex);
+			return -1;
+        }
+    }
+	list_add_tail(&(new_task->p_list), &process_list);
+	mutex_unlock(&mp2_mutex);
+	return -1;
+}
 
 
 
@@ -540,7 +580,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     if(cmd== 'R')
     {
       //register
-      register_helper(t_buffer);
+      add_to_list(t_buffer);
       printk(KERN_ALERT "PID %u REGISTERED", _pid_);
     }
     else if(cmd =='Y')
