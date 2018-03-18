@@ -175,7 +175,7 @@ static void yeild(pid_t pid)
     //get the pointer to the process
     pointer = NULL;
     get_process_node(pid, pointer);
-    curr= list_entry(&pointer, mp2_t, p_list);
+    curr= list_entry(pointer, mp2_t, p_list);
     if(curr ==NULL)
     {
       printk(KERN_ALERT "PID : %u not found while yeilding", pid);
