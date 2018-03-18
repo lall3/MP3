@@ -392,7 +392,6 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
 static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t count, loff_t * data)
 {
 
-    printk(KERN_ALERT "WRITE FUNCTION REACHED");
     //unsigned long curr_pid ;
     int ret_val;
     char * t_buffer;
@@ -401,6 +400,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     struct list_head read;
     t_buffer = (char *)kmalloc(count +1, GFP_KERNEL);
 
+    printk(KERN_ALERT "WRITE FUNCTION REACHED");
     lock=1;
     ret_val =-1;
     copy_from_user(t_buffer, buffer, count);
