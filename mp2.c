@@ -98,9 +98,9 @@ static int remove_node_from_list(struct list_head* node)
     if (my_current_task->pid == container->pid)
       my_current_task =NULL;
   }
+  list_del(node);
   del_timer(&(container->timer_list_));
   kmem_cache_free(k_cache, container);
-  list_del(node);
   mutex_unlock(&mp2_mutex);
 
   return 0;
@@ -508,7 +508,7 @@ void __exit mp2_exit(void)
    if(_workqueue)
     destroy_workqueue(_workqueue);
 
-   kthread_stop(scheduler_dispatch );//check
+   kthread_stop(dispatcher );//check
    kmem_cache_destroy(k_cache);
 
    mutex_destroy(&mp2_mutex);
