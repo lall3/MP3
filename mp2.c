@@ -184,7 +184,7 @@ static void yeild(pid_t pid)
     }
 
     printk(KERN_ALERT "FOUND (PID %u) Yeilding,thsi %u", pid, curr->pid);
-    curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187", pid);
+    curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
     do_gettimeofday(&tv);
 printk(KERN_ALERT "TIMER STUFF 189", pid);
     time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
