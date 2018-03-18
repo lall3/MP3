@@ -89,6 +89,8 @@ static int admission_control(char * input, pid_t * pid_);
 */
 static int remove_node_from_list(struct list_head* node)
 {
+  if(list_empty(&process_list))
+    return 0;
   mp2_t * container;
   //using mutex for critical code
   mutex_lock(&mp2_mutex);
@@ -235,7 +237,7 @@ static void schedule_next_task(void)
     if(running_task->state == RUNNING)
       running_task->state = READY;
 
-    sparam.sched_priority=1;//lowest
+    sparam.sched_priority=0;//lowest
     sched_setscheduler(running_task->task_, SCHED_NORMAL ,&sparam);
   }
 
@@ -259,8 +261,10 @@ static void schedule_next_task(void)
 */
 static int scheduler_dispatch (void * data)
 {
-  while(!kthread_should_stop())
+  while(1)
   {
+    if (kthread_should_stop())
+      return 0;
     printk("DISPATCHING THREAD STARTING");
     mutex_lock(&mp2_mutex);
     schedule_next_task();
@@ -288,6 +292,7 @@ static int admission_control(char * input, pid_t * pid_)
   mp2_t * tmp;
   struct list_head * temp_list;
   unsigned long ratio;
+  char c;
 
   if( input [0]== 'R')
   {
@@ -296,8 +301,10 @@ static int admission_control(char * input, pid_t * pid_)
     ratio = (p_time*1000)/(period_);
   }
   else
+  {
+    sscanf(input, "%c, %d", &c, pid);
     return 1;
-
+  }
   mutex_lock(&mp2_mutex);
   list_for_each(temp_list, &process_list)
   {
