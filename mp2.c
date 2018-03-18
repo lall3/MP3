@@ -114,6 +114,8 @@ static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned 
   //make sure this works
   char c;
   sscanf(input, "%c, %d, %lu, %lu", &c, pid, a, b);
+  printk (KERN_ALERT "OG MGS %s", input);
+  printk (KERN_ALERT "New %c, %d, %lu, %lu", c, *pid, *a, *b);
 
 }
 
@@ -471,8 +473,6 @@ int __init mp2_init(void)
 
    //initializing globals
    my_current_task = NULL;
-   spin_lock_init(&mp2_spinlock);
-   mutex_init(&mp2_mutex);
 
    //add function name
    dispatcher = kthread_create( scheduler_dispatch , NULL , "MP2");
@@ -480,6 +480,9 @@ int __init mp2_init(void)
    k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
 
    _workqueue = create_workqueue("mp2");
+
+   spin_lock_init(&mp2_spinlock);
+   mutex_init(&mp2_mutex);
 
    printk(KERN_ALERT "MP2 MODULE LOADED\n");
    return 0;
@@ -510,8 +513,7 @@ void __exit mp2_exit(void)
    //mutex_unlock(&mp2_mutex);
    remove_proc_entry("status", proc_dir_mp2);
    remove_proc_entry("mp2", NULL);
-   if(_workqueue)
-    destroy_workqueue(_workqueue);
+
 
    kthread_stop(dispatcher );//check
    kmem_cache_destroy(k_cache);
