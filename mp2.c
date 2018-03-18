@@ -144,6 +144,28 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
     mutex_unlock(&mp2_mutex);
 }
 
+/*
+* returns pointer to node of given pid as param
+*/
+static struct list_head* get_process_node2(pid_t pid_)
+{
+    struct list_head * temp1, *temp2;
+    mp2_t * curr;
+    //ret=NULL;
+    mutex_lock(&mp2_mutex);
+    list_for_each_safe(temp1, temp2, &process_list)
+    {
+      curr=list_entry(temp1 , mp2_t , p_list);
+      if(pid_ == curr->pid)
+      {
+        mutex_unlock(&mp2_mutex);
+        return temp1;
+        break;
+      }
+    }
+    mutex_unlock(&mp2_mutex);
+    return NULL;
+}
 
 /*
 * wake up timer function handler
@@ -169,21 +191,22 @@ void timer_handler(unsigned long in)
 static void yeild(pid_t pid)
 {
     mp2_t * curr;
-    struct list_head  * pointer =NULL;
+    struct list_head  * pointer ;
     unsigned long time_;
     struct timeval tv;
     printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
     //pointer = NULL;
-    get_process_node(pid, pointer);
+    pointer= get_process_node2(pid);
+    //get_process_node(pid, pointer);
     curr= list_entry(pointer, mp2_t, p_list);
-    if(curr ==NULL)
+    if(curr == NULL)
     {
       printk(KERN_ALERT "PID : %u not found while yeilding", pid);
       goto fin_yeild;
     }
 
-    printk(KERN_ALERT "FOUND (PID %u) Yeilding,thsi %u", pid, curr->pid);
+    printk(KERN_ALERT "FOUND (PID %u) Yeilding,thsi %u", pid);
     curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
     do_gettimeofday(&tv);
 printk(KERN_ALERT "TIMER STUFF 189");
