@@ -175,6 +175,11 @@ static void yeild(pid_t pid)
     //get the pointer to the process
     get_process_node(pid, &pointer);
     curr= list_entry(&pointer, mp2_t, p_list);
+    if(curr ==NULL)
+    {
+      printk(KERN_ALERT "PID : %u not found while yeilding", pid);
+      goto fin_yeild;
+    }
 
     curr-> state= SLEEPING;
     do_gettimeofday(&tv);
@@ -184,9 +189,13 @@ static void yeild(pid_t pid)
     time_+= (tv.tv_usec - curr->start_time->tv_usec)/1000;
 
     mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
+    set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
     my_current_task= NULL;
-    wake_up_process(dispatcher);
 
+
+
+    fin_yeild:
+    wake_up_process(dispatcher);
     set_current_state(TASK_UNINTERRUPTIBLE);
     schedule();
 
