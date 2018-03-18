@@ -473,7 +473,7 @@ static void init_node(mp2_t* new_task, char* buf)
     // set up member variables
     extract_data(buf, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
 
-	new_task -> state = SLEEPING_STATE;
+	new_task -> state = SLEEPING;
     new_task -> task_ = find_task_by_pid(new_task->pid);
     new_task -> start_time = (struct timeval*)kmalloc(sizeof(struct timeval), GFP_KERNEL);
     do_gettimeofday(new_task->start_time);
