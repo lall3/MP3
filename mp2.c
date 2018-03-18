@@ -212,7 +212,7 @@ void wakeup_timer_handler(unsigned long arg)
 
 // Helper function for parsing pid, period and process time
 // We store the parsed information in the call-by-reference parameters
-void _read_process_info(char *info, pid_t *pid, unsigned long *period, unsigned long *proc_time)
+void _read_process_info(char *input, pid_t *pid, unsigned long *period, unsigned long *proc_time)
 {
   char c;
   sscanf(input, "%c, %d, %lu, %lu", &c, pid, period, proc_time);
