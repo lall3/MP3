@@ -516,7 +516,7 @@ void __exit mp2_exit(void)
    //mutex_lock(&mp2_mutex);
    spin_lock(&mp2_spinlock);
   //when making list_head, use that name
-  list_for_each_entry_safe(temp1, temp2, &process_list){
+  list_for_each_entry_safe(temp1, temp2,&process_list, p_list ){
     list_del(&(entry->task_node));
     del_timer( &entry->task_timer );
     kmem_cache_free(mp_task_struct_cache, entry);
