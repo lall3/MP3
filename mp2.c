@@ -264,7 +264,7 @@ static void schedule_next_task(void)
   }
   if(next_task && next_task->state==READY)
   {
-    print(KERN_ALERT "starting %u", next_task->pid);
+    printk(KERN_ALERT "starting %u", next_task->pid);
     sparam.sched_priority = MAX_PRIORITY;
     //check order
     sched_setscheduler(next_task->task_, SCHED_FIFO ,&sparam);
