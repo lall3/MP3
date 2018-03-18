@@ -514,16 +514,16 @@ void __exit mp2_exit(void)
    printk(KERN_ALERT "MP2 MODULE UNLOADING\n");
    #endif
    //mutex_lock(&mp2_mutex);
-   spin_lock(&mp2_lock);
+   spin_lock(&mp2_spinlock);
   //when making list_head, use that name
-  list_for_each_entry__safe(temp1, temp2, &process_list){
+  list_for_each_entry_safe(temp1, temp2, &process_list){
     list_del(&(entry->task_node));
     del_timer( &entry->task_timer );
     kmem_cache_free(mp_task_struct_cache, entry);
    }
 
    kmem_cache_destroy(k_cache);
-   spin_unlock(&mp2_lock);
+   spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
    remove_proc_entry("status", proc_dir_mp2);
    remove_proc_entry("mp2", NULL);
