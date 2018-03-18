@@ -222,21 +222,24 @@ static void schedule_next_task(void)
     }
   }
 
+  if(next_task == NULL)
+    return;
+  else if(next_task->state != READY )
+    return;
+
+  if(running_task == next_task)
+      return;
   //if there is a task running, then adjust scheduling
   if(running_task)
   {
     if(running_task->state == RUNNING)
       running_task->state = READY;
 
-    sparam.sched_priority=0;//lowest
+    sparam.sched_priority=1;//lowest
     sched_setscheduler(running_task->task_, SCHED_NORMAL ,&sparam);
   }
 
-  //no task found thast ready to run
-  if(!next_task)
-    return;
-  else if(next_task->state != READY )
-    return;
+
 
 
   //actually adjuting schedular
@@ -325,7 +328,7 @@ static void register_helper(char * input)
 
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
-  printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) )
+  printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
   new_task->state = SLEEPING;
   get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
