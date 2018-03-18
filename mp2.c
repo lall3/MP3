@@ -73,14 +73,14 @@ static int lock=0 ;
 LIST_HEAD(process_list);
 
 //declearing function headers
-static int remove_node_from_list(struct list_head* node);
+/*static int remove_node_from_list(struct list_head* node);
 static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned long * b);
 static void get_process_node(pid_t pid_, struct list_head * ret);
 void timer_handler(unsigned long in);
 static void yeild(char * pid);
 static void schedule_next_task(void);
 static int admission_control(char * input, pid_t * pid_);
-
+*/
 //-------------------------------------------------------------------------------------------------------------------------------
 //Helper functions
 
@@ -225,11 +225,11 @@ static void yeild( char * pid)
     //pointer = NULL;
 
     //get_process_node2(pid, curr);
-    /*if(pointer == NULL)
+    if(pointer == NULL)
     {
       printk(KERN_ALERT "Herin lies the error");
       return;
-    }*//*
+    }
     pointer = find_task_node_by_pid(pid);
     curr= list_entry(pointer, mp2_t, p_list);
     if(curr == NULL)
