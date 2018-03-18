@@ -162,20 +162,20 @@ void timer_handler(unsigned long in)
 static void yeild(pid_t pid)
 {
     mp2_t * curr;
-    struct list_head * pointer;
+    struct list_head  pointer;
     unsigned long time_;
-    struct timeval *tv;
+    struct timeval tv;
 
     //get the pointer to the process
-    get_process_node(pid, pointer);
-    curr= list_entry(pointer, mp2_t, p_list);
+    get_process_node(pid, &pointer);
+    curr= list_entry(&pointer, mp2_t, p_list);
 
     curr-> state= SLEEPING;
-    do_gettimeofday(tv);
+    do_gettimeofday(&tv);
 
-    time_= tv->tv_sec - curr->start_time->tv_sec;
+    time_= tv.tv_sec - curr->start_time->tv_sec;
     time_*=1000;
-    time_+= (tv->tv_usec - curr->start_time->tv_usec)/1000;
+    time_+= (tv.tv_usec - curr->start_time->tv_usec)/1000;
 
     mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
     my_current_task= NULL;
@@ -415,20 +415,20 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //register
       register_helper(t_buffer);
-      printk(KERN_ALERT "PID %d REGISTERED", &_pid_);
+      printk(KERN_ALERT "PID %u REGISTERED", &_pid_);
     }
     else if(cmd =='Y')
     {
       //yeild
       yeild(_pid_);
-      printk(KERN_ALERT "PID %d YEILD", &_pid_);
+      printk(KERN_ALERT "PID %u YEILD", &_pid_);
     }
     else if(cmd =='D')
     {
       //de register
       get_process_node( _pid_ , &read);
       remove_node_from_list(&read);
-      printk(KERN_ALERT "DEREGITER: %d", _pid_);
+      printk(KERN_ALERT "DEREGITER: %u", _pid_);
     }
     else
       ret_val=0;
