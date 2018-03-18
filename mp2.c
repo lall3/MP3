@@ -214,14 +214,14 @@ static void yeild(pid_t pid)
 */
 static void schedule_next_task(void)
 {
-  printk(KERN_ALERT "SCHEDULAR HELPER STARTING");
+
   mp2_t *running_task;
   mp2_t *next_task;
   struct sched_param sparam;
 
   struct list_head* iter;
   mp2_t *tmp;
-
+  printk(KERN_ALERT "SCHEDULAR HELPER STARTING");
   running_task= my_current_task;
   if(my_current_task)
   {
@@ -236,7 +236,7 @@ static void schedule_next_task(void)
     }
     if(running_task-> state== RUNNING)
       running_task->state= READY;
-    spram.sched_priority=0;
+    sparam.sched_priority=0;
     sched_setscheduler(running_task ->task_, SCHED_NORMAL, &sparam);
     if(next_task && next_task->state==READY)
     {
