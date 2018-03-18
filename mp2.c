@@ -223,7 +223,7 @@ void _read_process_info(char *info, pid_t *pid, unsigned long *period, unsigned 
         strcpy(dataHolder, info);
     }
 
-    pch = strsep(&dataHolder, " ,");
+    pch = strsep(&dataHolder, " ");
 
     // parse user input and store it into the node
     for(i = 0; i < 3 && pch!=NULL; i ++)
