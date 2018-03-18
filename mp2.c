@@ -259,7 +259,7 @@ printk(KERN_ALERT "TIMER STUFF 192");
 
 }*/
 
-static int _yield_handler(char *pid)
+static void _yield_handler(char *pid)
 {
 
 
@@ -275,13 +275,13 @@ static int _yield_handler(char *pid)
 	actual_proc_time = (curr_time.tv_sec*1000 - yield_task->start_time->tv_sec*1000) + (curr_time.tv_usec/1000 - yield_task->start_time->tv_usec /1000);
 	mod_timer(&(yield_task->timer_list_), jiffies + msecs_to_jiffies(yield_task->period - actual_proc_time));
 	set_task_state(yield_task->task_, TASK_UNINTERRUPTIBLE);
-	current_running_task = NULL;
+	my_current_task = NULL;
 	wake_up_process(dispatcher);
 
 	set_current_state(TASK_UNINTERRUPTIBLE);
 	schedule();
 
-	return 0;
+//	return 0;
 }
 
 
