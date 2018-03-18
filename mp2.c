@@ -325,6 +325,7 @@ static void register_helper(char * input)
 
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
+  printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) )
   new_task->state = SLEEPING;
   get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
