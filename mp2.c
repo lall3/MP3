@@ -115,7 +115,6 @@ static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned 
   char c;
   sscanf(input, "%c, %d, %lu, %lu", &c, pid, a, b);
   printk (KERN_ALERT "OG MGS %s", input);
-  printk (KERN_ALERT "New %c, %d, %lu, %lu", c, *pid, *a, *b);
 
 }
 
@@ -286,8 +285,14 @@ static int admission_control(char * input, pid_t * pid_)
   struct list_head * temp_list;
   unsigned long ratio;
 
-  extract_data(input, pid_ , &period_ , &p_time);
-  ratio = p_time*1000/(period_);
+  if( input [0]== 'R')
+  {
+    extract_data(input, pid_ , &period_ , &p_time);
+    printk (KERN_ALERT "New %c, %d, %lu, %lu", c, pid_, period_, p_time);
+    ratio = (p_time*1000)/(period_);
+  }
+  else
+    return 1;
 
   mutex_lock(&mp2_mutex);
   list_for_each(temp_list, &process_list)
