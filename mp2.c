@@ -259,7 +259,7 @@ printk(KERN_ALERT "TIMER STUFF 192");
 
 }*/
 
-static void _yield_handler(char *pid)
+static void yeild(char *pid)
 {
 
 
