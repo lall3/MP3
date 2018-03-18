@@ -188,7 +188,7 @@ void timer_handler(unsigned long in)
 */
 static void yeild(pid_t pid)
 {
-    mp2_t * curr;
+    mp2_t * curr= NULL;
     struct list_head  * pointer ;
     unsigned long time_;
     struct timeval tv;
