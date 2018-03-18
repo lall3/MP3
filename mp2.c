@@ -169,7 +169,7 @@ void timer_handler(unsigned long in)
 static void yeild(pid_t pid)
 {
     mp2_t * curr;
-    struct list_head  * pointer;
+    struct list_head  * pointer =NULL;
     unsigned long time_;
     struct timeval tv;
     printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
