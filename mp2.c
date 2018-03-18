@@ -96,7 +96,9 @@ static int remove_node_from_list(struct list_head* node)
     return 0;
   mutex_lock(&mp2_mutex);
   container = list_entry(node, mp2_t, p_list);
-  if(my_current_task)
+  if(container == NULL)
+    return 0;
+  if(my_current_task != NULL)
   {
     if (my_current_task->pid == container->pid)
       my_current_task =NULL;
@@ -338,7 +340,7 @@ static void register_helper(char * input)
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
   printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
-  new_task->state = SLEEPING;
+  new_task->state = READY; //changed
   get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
   do_gettimeofday(new_task->start_time);
@@ -392,7 +394,7 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
   list_for_each_entry(container, &process_list, p_list)
   {
      memset(read, 0, 256);//resets read array
-     length= sprintf(read, "%u: %lu, %lu\n", container->pid, container->period, container->proc_time );
+     length= sprintf(read, "%u, %lu, %lu\n", container->pid, container->period, container->proc_time );
      ctr += length;
      strcat(read_buffer, read);
   }
@@ -427,7 +429,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     t_buffer [count]= '\0';
     cmd = t_buffer[0];
 
-    if(!admission_control(t_buffer, &_pid_))
+    if(admission_control(t_buffer, &_pid_)==0)
     {
       ret_val=0;
       goto done_write;
@@ -523,12 +525,12 @@ void __exit mp2_exit(void)
    #endif
    //mutex_lock(&mp2_mutex);
 
-  spin_lock(&mp2_spinlock);
+  //spin_lock(&mp2_spinlock);
   //when making list_head, use that name
   list_for_each_safe(temp1, temp2, &process_list){
     remove_node_from_list(temp1);
    }
-   spin_unlock(&mp2_spinlock);
+   //spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
    remove_proc_entry("status", proc_dir_mp2);
    remove_proc_entry("mp2", NULL);
