@@ -288,7 +288,7 @@ static int admission_control(char * input, pid_t * pid_)
   if( input [0]== 'R')
   {
     extract_data(input, pid_ , &period_ , &p_time);
-    printk (KERN_ALERT "New %c, %d, %lu, %lu", c, pid_, period_, p_time);
+    printk (KERN_ALERT "New  %d, %lu, %lu", pid_, period_, p_time);
     ratio = (p_time*1000)/(period_);
   }
   else
