@@ -232,6 +232,33 @@ printk(KERN_ALERT "TIMER STUFF 192");
 
 
 
+
+static struct list_head *find_task_node_by_pid(char *pid)
+{
+    struct list_head *pos;
+    struct list_head *next;
+    mp2_t *curr;
+    char curr_pid[20];
+
+    mutex_lock(&mp2_mutex);
+
+    list_for_each_safe(pos, next, &process_list){
+        curr = list_entry(pos, mp2_t, p_list);
+        memset(curr_pid, 0, 20);
+        sprintf(curr_pid, "%u", curr->pid);
+        if(strcmp(curr_pid, pid)==0)
+        {
+            mutex_unlock(&mp2_mutex);
+            return pos;
+        }
+    }
+
+    mutex_unlock(&my_mutex);
+    return NULL;
+}
+
+
+
 //-------------------------------------------------------------------------------------
 //DISPATCHING THREAD
 /*
@@ -384,7 +411,8 @@ static void register_helper(char * input)
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
   printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
   new_task->state = SLEEPING; //changed
-  get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
+  //get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
+  new_task->task_ = find_task_node_by_pid(new_task->pid);
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
   do_gettimeofday(new_task->start_time);
 
