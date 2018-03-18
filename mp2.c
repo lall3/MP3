@@ -214,6 +214,7 @@ static void yeild(pid_t pid)
 */
 static void schedule_next_task(void)
 {
+  printk(KERN_ALERT "SCHEDULAR HELPER STARTING");
   mp2_t *running_task;
   mp2_t *next_task;
   struct sched_param sparam;
@@ -221,53 +222,57 @@ static void schedule_next_task(void)
   struct list_head* iter;
   mp2_t *tmp;
 
-  //base case
-  if((!my_current_task) && list_empty(&process_list))
+  running_task= my_current_task;
+  if(my_current_task)
+  {
+    list_for_each(iter, &process_list)
+    {
+      tmp = list_entry(iter, mp2_t, p_list);
+      if(tmp != NULL && tmp->state == READY)
+      {
+        next_task = tmp;
+        break;
+      }
+    }
+    if(running_task-> state== RUNNING)
+      running_task->state= READY;
+    spram.sched_priority=0;
+    sched_setscheduler(running_task ->task_, sparam);
+    if(next_task && next_task->state==READY)
+    {
+      print(KERN_ALERT "starting (switching bterween tasks)%u -> %u", my_current_task->pid, next_task->pid);
+      sparam.sched_priority = MAX_PRIORITY;
+      //check order
+      sched_setscheduler(next_task->task_, SCHED_FIFO ,&sparam);
+      do_gettimeofday(next_task->start_time);
+      wake_up_process(next_task->task_);
+      my_current_task = next_task;
+      my_current_task->state = RUNNING;
+    }
     return;
-
-  next_task= NULL;
-  running_task = my_current_task;
-
-  //finding the next task
+  }
+  if(list_empty(&process_list))
+    return;
   list_for_each(iter, &process_list)
   {
-    tmp = list_entry(iter, mp2_t, p_list);
-    if(tmp->state == READY)
-    {
-      next_task = tmp;
-      break;
-    }
+      tmp = list_entry(iter, mp2_t, p_list);
+      if(tmp != NULL && tmp->state == READY)
+      {
+        next_task = tmp;
+        break;
+      }
   }
-
-  if(next_task == NULL)
-    return;
-  else if(next_task->state != READY )
-    return;
-
-  if(running_task == next_task)
-      return;
-  //if there is a task running, then adjust scheduling
-  if(running_task)
+  if(next_task && next_task->state==READY)
   {
-    if(running_task->state == RUNNING)
-      running_task->state = READY;
-
-    sparam.sched_priority=0;//lowest
-    sched_setscheduler(running_task->task_, SCHED_NORMAL ,&sparam);
+    print(KERN_ALERT "starting %u", next_task->pid);
+    sparam.sched_priority = MAX_PRIORITY;
+    //check order
+    sched_setscheduler(next_task->task_, SCHED_FIFO ,&sparam);
+    do_gettimeofday(next_task->start_time);
+    wake_up_process(next_task->task_);
+    my_current_task = next_task;
+    my_current_task->state = RUNNING;
   }
-
-
-
-
-  //actually adjuting schedular
-  printk(KERN_ALERT "NEXT TASK SCHEDULED. PID= %d",next_task->pid);
-  sparam.sched_priority = MAX_PRIORITY;
-  //check order
-  sched_setscheduler(next_task->task_, SCHED_FIFO ,&sparam);
-  do_gettimeofday(next_task->start_time);
-  wake_up_process(next_task->task_);
-  my_current_task = next_task;
-  my_current_task->state = RUNNING;
 
 }
 /*
