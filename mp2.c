@@ -130,7 +130,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 {
     struct list_head * temp1, *temp2;
     mp2_t * curr;
-    ret=NULL;
+    //ret=NULL;
     mutex_lock(&mp2_mutex);
     list_for_each_safe(temp1, temp2, &process_list)
     {
@@ -168,12 +168,13 @@ void timer_handler(unsigned long in)
 static void yeild(pid_t pid)
 {
     mp2_t * curr;
-    struct list_head  pointer;
+    struct list_head  * pointer;
     unsigned long time_;
     struct timeval tv;
-
+    printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
-    get_process_node(pid, &pointer);
+    pointer = NULL;
+    get_process_node(pid, pointer);
     curr= list_entry(&pointer, mp2_t, p_list);
     if(curr ==NULL)
     {
