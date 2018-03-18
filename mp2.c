@@ -195,7 +195,7 @@ printk(KERN_ALERT "TIMER STUFF 192");
     my_current_task= NULL;
 
 
-    printk(KERN_ALERT "TIMER STUFF DONE", pid);
+    printk(KERN_ALERT "TIMER STUFF DONE");
     fin_yeild:
     wake_up_process(dispatcher);
     set_current_state(TASK_UNINTERRUPTIBLE);
