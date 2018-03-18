@@ -401,6 +401,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     struct list_head read;
     t_buffer = (char *)kmalloc(count +1, GFP_KERNEL);
 
+    lock=1;
     copy_from_user(t_buffer, buffer, count);
     t_buffer [count]= '\0';
     cmd = t_buffer[0];
@@ -415,13 +416,13 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //register
       register_helper(t_buffer);
-      printk(KERN_ALERT "PID %u REGISTERED", &_pid_);
+      printk(KERN_ALERT "PID %u REGISTERED", _pid_);
     }
     else if(cmd =='Y')
     {
       //yeild
       yeild(_pid_);
-      printk(KERN_ALERT "PID %u YEILD", &_pid_);
+      printk(KERN_ALERT "PID %u YEILD", _pid_);
     }
     else if(cmd =='D')
     {
@@ -437,6 +438,8 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     kfree(t_buffer);
     if(ret_val ==-1)
       *data = -1;
+
+    lock=0;  
     return ret_val;
 
 }
