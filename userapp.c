@@ -1,117 +1,135 @@
 #include "userapp.h"
 #include <stdlib.h>
-#include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
+#define PROC_TIME 47
+#define PROC_FILE "/proc/mp2/status"
 
-void factorial (int factval){
-	int fact = factval;
-	int val =1;
-	while(fact--!=0){
-		val *= fact ;
+ // * params: the pid, period(ms) and process time(ms) for the task to be registered
+ // * return: on success, return the number of bytes written; on failure return a negative number
+int reg(pid_t pid, unsigned long period, unsigned long proc_time)
+{
+    FILE * fp = fopen (PROC_FILE, "a+");
+    if(!fp)
+    {
+        perror ("file doesn't exist\n");
+        return -1;
+    }
+    int byte_write = fprintf(fp, "R:%d %lu %lu", pid, period, proc_time);
+    fclose(fp);
+    return byte_write;
+}
+
+ // * params: the pid for the task to be unregistered
+ // * return: on success, return the number of bytes written; on failure return a negative number
+int unreg(pid_t pid)
+{
+    FILE * fp = fopen (PROC_FILE, "a+");
+    if(!fp)
+    {
+        perror ("file doesn't exist\n");
+        return -1;
+    }
+    int byte_write = fprintf(fp, "D:%d", pid);
+    fclose(fp);
+    return byte_write;
+}
+
+// * params: the pid for the task to be unregistered
+// * return: on success, return the number of bytes written; on failure return a negative number
+int yield(pid_t pid)
+{
+	FILE * fp = fopen(PROC_FILE, "a+");
+	if(!fp) {
+		perror("file doesn't exist\n");
+		return -1;
 	}
+	int byte_write = fprintf(fp, "Y:%d", pid);
+	fclose(fp);
+	return byte_write;
 }
 
-void reg(pid_t pid, char* period, char* process_time) {
-	FILE *f = fopen("/proc/mp/status", "w");
-	fprintf(f, "R, %d, %s, %s\n", pid, period, process_time);
-	fclose(f);
-}
+// The self-defined job for each task to do
+// Correct return result should be 0
+int do_job(void)
+{
+    int n = 10000000, ret = 0, i;
 
-int read_status(pid_t pid, char* period, char* process_time) {
-	FILE *f = fopen ("/proc/mp/status", "r");
-	char buffer[255];
-	char target[255];
-	sprintf(target, "%d[0]: %s ms, %s ms\n", pid, period, process_time);
+    for(i = 0; i < n; i++) {
+        ret = ret++;
+    }
 
-	while(fgets(buffer, 255, f)) {
-		printf("The returned buffer is %s",buffer);
-		if (!strcmp(buffer, target))
-			return 0;
+	for(i = 0; i < n; i++) {
+		ret = ret--;
 	}
-
-	fclose(f);
-	return -1;
+	return ret;
 }
 
-void yield(pid_t pid) {
-	FILE *f = fopen ("/proc/mp/status", "w");
-	fprintf(f, "Y, %d", pid);
-	fclose(f);
+// check if the pid is existing in our proc file
+int check_status(pid_t pid)
+{
+    ssize_t read;
+    char *line = NULL;
+    size_t len = 0;
+    char *pid_buf;
+    FILE * fp = fopen(PROC_FILE, "r+");
+    if(!fp) {
+        perror("file doesn't exist\n");
+        return -1;
+    }
+
+	while ((read = getline(&line, &len, fp)) != -1) {
+        pid_buf = strtok(line, ":");
+        if(atoi(pid_buf) == pid) {
+        	return 0;
+        }
+    }
+
+    return -1;
 }
 
-void unreg(pid_t pid) {
-	FILE *f = fopen ("/proc/mp/status", "w");
-	fprintf(f, "D, %d", pid);
-	fclose(f);
-}
-
-// argv[1] : peroid
-// argv[2] : process_time
-// argv[3] : num_of_jobs
-int main(int argc, char* argv[]) {
-
-	if (argc != 4){
-		printf("Reminder: put in three integer value in the following order: 1.peroid 2.numb_of_jobs.\n");		   return 1;
-	}
-	int factval = atoi(argv[3]);
-
-	struct timeval start;
-	struct timeval end;
-	gettimeofday(&start, NULL);
-	factorial(factval);
-	factorial(factval);
-	factorial(factval);
-	factorial(factval);
-	factorial(factval);
-	gettimeofday(&end, NULL);
-	int safe_processtime = (int)(end.tv_usec-start.tv_usec)/5*(1.2);
-	char proctime[32];
-	sprintf(proctime,"%d",safe_processtime);
-	printf("The average time with 1.2 safe parameter for factorial is : %dms.\n",safe_processtime);
-
-	printf("\nScheduler registration request.\n");
+int main(int argc, char* argv[])
+{
+    unsigned long per = strtoul(argv[1], NULL, 10);
 	pid_t pid = getpid();
-	reg(pid, argv[1], proctime);
-	if (read_status(pid, argv[1], proctime)) {
-		printf("Registeration failed.\n");
-		exit(1);
-	}
-	printf("Registration succeeded.\n");
-	yield(pid);
-	printf("Start time of the process %d second\n", start.tv_sec);
-	int num_jobs = atoi(argv[2]);
-	while (num_jobs-- > 0) {
-	/*
-		struct timeval tv;
-		gettimeofday(&tv, NULL);
-		suseconds_t t = tv.tv_usec;
-		num_jobs--;
-		factorial();
-		yield(pid);
-		gettimeofday(&tv, NULL);
-		struct timespec ts;
-		ts.tv_nsec = (atoi(argv[1])*1000000-(tv.tv_usec-t))*1000;
-		nanosleep(&ts, NULL);
-	*/
-	/*
-		num_jobs--;
-		printf("userapp iteration %d\n", num_jobs);
-		sleep(1);
-		yield(pid);
-	*/
-		gettimeofday(&start, NULL);
-		factorial(factval);
-		gettimeofday(&end, NULL);
-		yield(pid);
+    int i, ret;
+	long int wakeup_time, job_process_time;
+    struct timeval t0, t1;
+	time_t current_time;
 
-		int actual_processingtime = (int)(end.tv_usec-start.tv_usec);
-		printf("The actual time it takes for factorial is : %dms.\n",actual_processingtime);
-		gettimeofday(&end, NULL);
-		printf("Wakeup time of the process %d second\n", end.tv_sec);
+	if(argc < 2)
+    {
+    	perror("Number of arguments wrong, please follow: ./userapp [period]\n");
+        return -1;
+    }
+
+    current_time = time(0);
+    printf("pid: %u, start time: %s", pid, ctime(&current_time));
+
+	reg(pid, per, PROC_TIME); //Proc filesystem
+
+    if (check_status(pid)) {
+		return -1; //Proc filesystem: Verify the process was admitted
 	}
 
-	gettimeofday(&end, NULL);
-	printf("End time of the process %d second\n", end.tv_sec);
-	// sleep(1);
-	unreg(pid);
+    gettimeofday(&t0, NULL);
+
+    yield(pid); //Proc filesystem
+
+    // real-time loop
+    for(i = 0; i < 5; i++) {
+		gettimeofday(&t1, NULL);
+        wakeup_time = t1.tv_usec/1000 + t1.tv_sec * 1000;
+		printf("pid: %u, wake-up time: %ld ms\n", pid, wakeup_time - (t0.tv_usec/1000 + t0.tv_sec * 1000));
+		ret = do_job();
+		gettimeofday(&t0, NULL);
+        job_process_time = t0.tv_usec/1000 + t0.tv_sec*1000 - wakeup_time;
+        printf ( "pid: %u, proc time: %ld ms, result: %d\n", pid, job_process_time, ret);
+		yield(pid);
+	}
+    unreg(pid);
+
+	current_time = time(0);
+	printf("pid: %u, end time: %s", pid, ctime(&current_time));
 	return 0;
 }
