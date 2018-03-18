@@ -144,27 +144,6 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
     mutex_unlock(&mp2_mutex);
 }
 
-/*
-* returns pointer to node of given pid as param
-*/
-static struct list_head* get_process_node2(pid_t pid_)
-{
-    struct list_head * temp1, *temp2;
-    mp2_t * curr;
-    //ret=NULL;
-    mutex_lock(&mp2_mutex);
-    list_for_each_safe(temp1, temp2, &process_list)
-    {
-      curr=list_entry(temp1 , mp2_t , p_list);
-      if(pid_ == curr->pid)
-      {
-        mutex_unlock(&mp2_mutex);
-        return temp1;
-      }
-    }
-    mutex_unlock(&mp2_mutex);
-    return NULL;
-}
 
 /*
 * wake up timer function handler
