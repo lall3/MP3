@@ -196,7 +196,7 @@ static void yeild(pid_t pid)
     printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
     //pointer = NULL;
-    pointer = get_process_node2(pid);
+    get_process_node2(pid, pointer);
     curr= list_entry(pointer, mp2_t, p_list);
     if(curr ==NULL)
     {
