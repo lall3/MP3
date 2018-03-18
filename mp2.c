@@ -199,6 +199,11 @@ static void yeild(pid_t pid)
     //pointer = NULL;
     pointer= get_process_node2(pid);
     //get_process_node(pid, pointer);
+    if(pointer == NULL)
+    {
+      printk(KERN_ALERT "Herin lies the error");
+      return;
+    }
     curr= list_entry(pointer, mp2_t, p_list);
     if(curr == NULL)
     {
