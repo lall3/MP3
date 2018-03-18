@@ -175,7 +175,7 @@ static void yeild(pid_t pid)
     printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
     //pointer = NULL;
-    get_process_node2(pid, pointer);
+    get_process_node(pid, pointer);
     curr= list_entry(pointer, mp2_t, p_list);
     if(curr ==NULL)
     {
@@ -237,7 +237,7 @@ static void schedule_next_task(void)
     if(running_task-> state== RUNNING)
       running_task->state= READY;
     spram.sched_priority=0;
-    sched_setscheduler(running_task ->task_, sparam);
+    sched_setscheduler(running_task ->task_, SCHED_NORMAL, &sparam);
     if(next_task && next_task->state==READY)
     {
       print(KERN_ALERT "starting (switching bterween tasks)%u -> %u", my_current_task->pid, next_task->pid);
