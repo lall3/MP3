@@ -397,11 +397,11 @@ static int _yield_handler(char *pid)
     //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
     //pointer = NULL;
-    //get_process_node2(pid, curr);
+    get_process_node(pid, pointer);
     if(pointer == NULL)
     {
       printk(KERN_ALERT "Herin lies the error");
-      return;
+      return 0;
     }
     pointer = find_task_node_by_pid(pid);
     curr= list_entry(pointer, mp2_t, p_list);
