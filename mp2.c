@@ -223,12 +223,12 @@ void timer_handler(unsigned long in)
   unsigned long lock_flags;
   mp2_t * curr= (mp2_t* ) in;
 
-  spin_lock_irqsave(&mp2_spinlock, lock_flags);
+  spin_lock_irqsave(&mp2_lock, lock_flags);
   if(curr != my_current_task)
   {
     curr->state = READY;
   }
-  spin_unlock_irqrestore(&mp2_spinlock, lock_flags);
+  spin_unlock_irqrestore(&mp2_lock, lock_flags);
   wake_up_process(dispatcher);
 }
 
