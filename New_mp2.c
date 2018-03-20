@@ -1,4 +1,4 @@
-
+//new mp2.c
 #define LINUX
 
 #include <linux/module.h>
@@ -39,7 +39,10 @@ MODULE_DESCRIPTION("CS-423 MP2");
 
 #define DEBUG 1
 
-//MP2 struct
+
+
+
+//MP2 struct (Process control block)
 typedef struct mp2_struct
 {
   struct task_struct* task_;
@@ -55,10 +58,13 @@ typedef struct mp2_struct
 
 }mp2_t;
 
+
+
+
 //--------------------------------------------------------------------------------------------------------------------------------
 //GLOBAL VARS
 
-static mp2_t * my_current_task;
+static mp2_t * my_current_task;// the current running task
 static struct mutex mp2_mutex;
 static spinlock_t mp2_spinlock; //timer lock
 //https://elixir.bootlin.com/linux/v4.0/source/mm/slab.h#L19
@@ -72,20 +78,13 @@ static int lock=0 ;
 
 LIST_HEAD(process_list);
 
-//declearing function headers
-/*static int remove_node_from_list(struct list_head* node);
-static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned long * b);
-static void get_process_node(pid_t pid_, struct list_head * ret);
-void timer_handler(unsigned long in);
-static void yeild(char * pid);
-static void schedule_next_task(void);
-static int admission_control(char * input, pid_t * pid_);
-*/
-//-------------------------------------------------------------------------------------------------------------------------------
-//Helper functions
+
+
+
 
 /*
 * Removes node during distruction and once process is done executing
+* used during exit and destruct
 */
 static int remove_node_from_list(struct list_head* node)
 {
@@ -97,12 +96,15 @@ static int remove_node_from_list(struct list_head* node)
   mutex_lock(&mp2_mutex);
   container = list_entry(node, mp2_t, p_list);
   if(container == NULL)
+  {	
+  	mutex_unlock(&mp2_mutex);
     return 0;
-  if(my_current_task != NULL)
-  {
-    if (my_current_task->pid == container->pid)
-      my_current_task =NULL;
   }
+
+  if (my_current_task->pid == container->pid)
+    my_current_task =NULL;
+
+
   list_del(node);
   del_timer(&(container->timer_list_));
   kmem_cache_free(k_cache, container);
@@ -112,57 +114,47 @@ static int remove_node_from_list(struct list_head* node)
 }
 
 /*
-* Helper function to parse the input, extracts pid, proc_time, and period
+* Admission control as specified in documentation
+* returns pid through argument
+* ratio muct be lkess then 0.693
 */
-static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned long * b)
+static int admission_control(char * input, pid_t * pid_)
 {
-  //make sure this works
+  unsigned long period_;
+  unsigned long p_time;
+  mp2_t * tmp;
+  struct list_head * temp_list;
+  unsigned long ratio;// long to avoid floating points
   char c;
-  sscanf(input, "%c, %d, %lu, %lu", &c, pid, a, b);
-  printk (KERN_ALERT "OG MGS %s", input);
 
-}
+  if( input [0]== 'R')
+  {
+    extract_data(input, pid_ , &period_ , &p_time);
+    printk (KERN_ALERT "New  %d, %lu, %lu", *pid_, period_, p_time);
+    ratio = (p_time*1000)/(period_);
+  }
+  else
+  {
+    sscanf(input, "%c, %d", &c, pid_);
+    printk (KERN_ALERT "REQUESTED  %c", c);
+    return 1;
+  }
+  mutex_lock(&mp2_mutex);
+  list_for_each(temp_list, &process_list)
+  {
+    tmp = list_entry(temp_list, mp2_t, p_list);
+    ratio += ( (tmp->proc_time*1000)/tmp->period );
+  }
 
-/*
-* returns pointer to node of given pid as param
-*/
-static void get_process_node(pid_t pid_,  struct list_head * ret)
-{
-    struct list_head * temp1, *temp2;
-    mp2_t * curr;
-    //ret=NULL;
-    mutex_lock(&mp2_mutex);
-    list_for_each_safe(temp1, temp2, &process_list)
-    {
-      curr=list_entry(temp1 , mp2_t , p_list);
-      if(pid_ == curr->pid)
-      {
-        ret = temp1;
-        break;
-      }
-    }
-    mutex_unlock(&mp2_mutex);
-}
+  mutex_unlock(&mp2_mutex);
+  if(ratio < 694)
+  {
+      printk(KERN_ALERT "Admission Passed");
+      return 1;
+  }
+  printk(KERN_ALERT "Admission failed ");
+  return 0;
 
-/*
-* returns pointer to node of given pid as param
-*/
-static void get_process_node2(pid_t pid_,  mp2_t * ret)
-{
-    struct list_head * temp1, *temp2;
-    mp2_t * curr;
-    //ret=NULL;
-    mutex_lock(&mp2_mutex);
-    list_for_each_safe(temp1, temp2, &process_list)
-    {
-      curr=list_entry(temp1 , mp2_t , p_list);
-      if(pid_ == curr->pid)
-      {
-        ret = curr;
-        break;
-      }
-    }
-    mutex_unlock(&mp2_mutex);
 }
 
 /*
@@ -183,6 +175,53 @@ void timer_handler(unsigned long in)
 }
 
 
+
+
+
+
+//REGISTRATION
+static void init_node(mp2_t* new_task, char* buf)
+{
+    struct timer_list *curr_timer;
+
+    // set up member variables
+    extract_data(buf, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
+
+	new_task -> state = SLEEPING;
+    new_task -> task_ = find_task_by_pid(new_task->pid);
+    new_task -> start_time = (struct timeval*)kmalloc(sizeof(struct timeval), GFP_KERNEL);
+    do_gettimeofday(new_task->start_time);
+
+    // create task wakeup timer
+    curr_timer = &(new_task->timer_list_);
+    init_timer(curr_timer);
+    curr_timer->data = (unsigned long)new_task;
+    curr_timer->function = timer_handler;
+}
+
+static int add_to_list(char *buf)
+{
+	struct list_head * pos;
+	mp2_t *entry;
+	mp2_t *new_task = kmem_cache_alloc(k_cache, GFP_KERNEL);
+
+	init_node(new_task, buf);
+
+	mutex_lock(&mp2_mutex);
+    list_for_each(pos, &process_list) {
+        entry = list_entry(pos, mp2_t, p_list);
+        if (entry->period > new_task->period) {
+		    list_add_tail(&(new_task->p_list), pos);
+			mutex_unlock(&mp2_mutex);
+			return -1;
+        }
+    }
+	list_add_tail(&(new_task->p_list), &process_list);
+	mutex_unlock(&mp2_mutex);
+	return -1;
+}
+
+//Yeid
 
 static struct list_head *find_task_node_by_pid(char *pid)
 {
@@ -209,56 +248,6 @@ static struct list_head *find_task_node_by_pid(char *pid)
 }
 
 
-
-/*
-* yields process
-* helper function , linked to file write
-*//*
-static void yeild( char * pid)
-{
-    mp2_t * curr= NULL;
-    struct list_head  * pointer ;
-    unsigned long time_;
-    struct timeval tv;
-    //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
-    //get the pointer to the process
-    //pointer = NULL;
-
-    //get_process_node2(pid, curr);
-    if(pointer == NULL)
-    {
-      printk(KERN_ALERT "Herin lies the error");
-      return;
-    }
-    pointer = find_task_node_by_pid(pid);
-    curr= list_entry(pointer, mp2_t, p_list);
-    if(curr == NULL)
-    {
-      //printk(KERN_ALERT "PID : %u not found while yeilding", pid);
-      goto fin_yeild;
-    }
-
-    printk(KERN_ALERT "FOUND (PID ) Yeilding");
-    curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
-    do_gettimeofday(&tv);
-printk(KERN_ALERT "TIMER STUFF 189");
-    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
-printk(KERN_ALERT "TIMER STUFF 191");
-    mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
-printk(KERN_ALERT "TIMER STUFF 192");
-    set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
-    my_current_task= NULL;
-
-
-    printk(KERN_ALERT "TIMER STUFF DONE");
-    fin_yeild:
-    wake_up_process(dispatcher);
-    set_current_state(TASK_UNINTERRUPTIBLE);
-    schedule();
-
-
-}*/
-
 static void yeild(char *pid)
 {
 
@@ -281,7 +270,6 @@ static void yeild(char *pid)
 	set_current_state(TASK_UNINTERRUPTIBLE);
 	schedule();
 }
-
 
 
 
@@ -377,136 +365,15 @@ static int scheduler_dispatch (void * data)
 
 }
 
-//------------------------------------------------------------------------
-/*
-* Admission control as specified in documentation
-* returns pid through argument
-* ratio muct be lkess then 0.693
-*/
-static int admission_control(char * input, pid_t * pid_)
-{
-  unsigned long period_;
-  unsigned long p_time;
-  mp2_t * tmp;
-  struct list_head * temp_list;
-  unsigned long ratio;
-  char c;
-
-  if( input [0]== 'R')
-  {
-    extract_data(input, pid_ , &period_ , &p_time);
-    printk (KERN_ALERT "New  %d, %lu, %lu", *pid_, period_, p_time);
-    ratio = (p_time*1000)/(period_);
-  }
-  else
-  {
-    sscanf(input, "%c, %d", &c, pid_);
-    printk (KERN_ALERT "REQUESTED  %c", c);
-    return 1;
-  }
-  mutex_lock(&mp2_mutex);
-  list_for_each(temp_list, &process_list)
-  {
-    tmp = list_entry(temp_list, mp2_t, p_list);
-    ratio += ((unsigned int)(tmp->proc_time*1000/tmp->period));
-  }
-
-  mutex_unlock(&mp2_mutex);
-  if(ratio < 694)
-  {
-      printk(KERN_ALERT "Admission Passed");
-      return 1;
-  }
-  printk(KERN_ALERT "Admission failed ");
-  return 0;
-
-}
-
-/*
-* Regsiter function. Adds task to list.
-* param : buffer copied from user
-*/
-static void register_helper(char * input)
-{
-  /*
-  struct list_head * t;
-  mp2_t * curr;
-  mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
-  struct timer_list * t_timer;
-
-
-  extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
-  printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
-  new_task->state = SLEEPING; //changed
-  //get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
-  new_task->task_ = find_task_by_pid(new_task->pid);
-  new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
-  do_gettimeofday(new_task->start_time);
-
-  init_timer(&(new_task->timer_list_));
-  t_timer = &(new_task->timer_list_);
-  t_timer->data = (unsigned long)new_task;
-  t_timer->function = timer_handler;
-
-  mutex_lock(&mp2_mutex);
-  list_for_each(t ,&process_list){
-    curr= list_entry(t, mp2_t, p_list);
-    if(curr->period > new_task->period)
-    {
-      list_add_tail(&(new_task->p_list), t);
-      mutex_unlock(&mp2_mutex);
-      return;
-    }
-
-  }
-  list_add_tail(&(new_task->p_list), &process_list);
-  mutex_unlock(&mp2_mutex);
-*/
-}
-
-static void init_node(mp2_t* new_task, char* buf)
-{
-    struct timer_list *curr_timer;
-
-    // set up member variables
-    extract_data(buf, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
-
-	new_task -> state = SLEEPING;
-    new_task -> task_ = find_task_by_pid(new_task->pid);
-    new_task -> start_time = (struct timeval*)kmalloc(sizeof(struct timeval), GFP_KERNEL);
-    do_gettimeofday(new_task->start_time);
-
-    // create task wakeup timer
-    curr_timer = &(new_task->timer_list_);
-    init_timer(curr_timer);
-    curr_timer->data = (unsigned long)new_task;
-    curr_timer->function = timer_handler;
-}
-
-static int add_to_list(char *buf)
-{
-	struct list_head *pos;
-	mp2_t *entry;
-	mp2_t *new_task = kmem_cache_alloc(k_cache, GFP_KERNEL);
-
-	init_node(new_task, buf);
-
-	mutex_lock(&mp2_mutex);
-    list_for_each(pos, &process_list) {
-        entry = list_entry(pos, mp2_t, p_list);
-        if (entry->period > new_task->period) {
-		    list_add_tail(&(new_task->p_list), pos);
-			mutex_unlock(&mp2_mutex);
-			return -1;
-        }
-    }
-	list_add_tail(&(new_task->p_list), &process_list);
-	mutex_unlock(&mp2_mutex);
-	return -1;
-}
 
 
 
+
+
+
+
+
+//FILE OPS
 //-----------------------------------------------------------------------
 //File struct, read and write
 /*
@@ -545,6 +412,7 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
   return ret_val;
 }
 
+
 /*
 * Write function
 */
@@ -556,10 +424,10 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     char * t_buffer;
     char cmd;
     pid_t _pid_;
-    struct list_head read;
-    t_buffer = (char *)kmalloc(256, GFP_KERNEL);
+    struct list_head * read;
 
     printk(KERN_ALERT "WRITE FUNCTION REACHED");
+    t_buffer = (char *)kmalloc(256, GFP_KERNEL);
     lock=1;
     ret_val =-1;
     copy_from_user(t_buffer, buffer, count);
@@ -591,8 +459,8 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     else if(cmd =='D')
     {
       //de register
-      get_process_node( _pid_ , &read);
-      remove_node_from_list(&read);
+      get_process_node( _pid_ , read);
+      remove_node_from_list(read);
       printk(KERN_ALERT "DEREGITER: %u", _pid_);
     }
     else
@@ -615,8 +483,7 @@ static const struct file_operations mp2_file_ops = {
 
 };
 
-//END OF file_operations
-//------------------------------------------------------------------------------
+
 
 
 /*
@@ -650,10 +517,6 @@ int __init mp2_init(void)
 }
 
 
-
-
-
-
 /*
 * mp2_exit - Called when module is unloaded
 *
@@ -666,7 +529,7 @@ void __exit mp2_exit(void)
    #endif
    //mutex_lock(&mp2_mutex);
 
-//mem leak_________________FIX!!!!!!!!!!
+  //mem leak_________________FIX!!!!!!!!!!
   spin_lock(&mp2_spinlock);
   //when making list_head, use that name
   
@@ -691,3 +554,4 @@ void __exit mp2_exit(void)
 // Register init and exit funtions
 module_init(mp2_init);
 module_exit(mp2_exit);
+
