@@ -80,6 +80,38 @@ LIST_HEAD(process_list);
 
 
 
+/*
+* Helper function to parse the input, extracts pid, proc_time, and period
+*/
+static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned long * b)
+{
+  //make sure this works
+  char c;
+  sscanf(input, "%c, %d, %lu, %lu", &c, pid, a, b);
+  printk (KERN_ALERT "OG MGS %s", input);
+
+}
+
+/*
+* returns pointer to node of given pid as param
+*/
+static void get_process_node(pid_t pid_,  struct list_head * ret)
+{
+    struct list_head * temp1, *temp2;
+    mp2_t * curr;
+    //ret=NULL;
+    mutex_lock(&mp2_mutex);
+    list_for_each_safe(temp1, temp2, &process_list)
+    {
+      curr=list_entry(temp1 , mp2_t , p_list);
+      if(pid_ == curr->pid)
+      {
+        ret = temp1;
+        break;
+      }
+    }
+    mutex_unlock(&mp2_mutex);
+}
 
 
 /*
