@@ -308,6 +308,7 @@ static void yeild(char *pid)
 /*
 * picks task to be scheduled for execution
 */
+/*
 static void schedule_next_task(void)
 {
 
@@ -374,7 +375,8 @@ static void schedule_next_task(void)
 /*
 * dispatcher function controls the schdeuling
 * runns the dispatching thread
-*/
+
+
 static int scheduler_dispatch (void * data)
 {
   while(1)
@@ -394,7 +396,96 @@ static int scheduler_dispatch (void * data)
   return 0;
 
 }
+*/
 
+static void pick_task_to_run(void)
+{
+  mp_t *entry;
+  mp_t *prev_task;
+  struct sched_param new_sparam; 
+  struct sched_param old_sparam; 
+  struct list_head *pos;
+  mp_t *next_task=NULL;
+
+  printk(KERN_ALERT "START TO PICK NEXT TASK");
+
+  if(current_running_task)
+  {
+    list_for_each(pos, &taskList) {
+      entry = list_entry(pos, mp_t, p_list);
+      if (entry->state == READY_STATE) {
+        next_task = entry;
+        break;
+      }
+    }
+    
+    prev_task = current_running_task;
+    if(prev_task->state == RUNNING)
+    {
+      prev_task->state = READY;
+    }
+    
+    //old task
+    old_sparam.sched_priority=0; 
+    sched_setscheduler(prev_task->task_, SCHED_NORMAL, &old_sparam);
+    
+    if(next_task && next_task->state==READY)
+    { 
+      // new task
+      printk(KERN_ALERT "PROCESS %u START TO RUN", next_task->pid);
+      wake_up_process(next_task->task_); 
+      new_sparam.sched_priority=MAX_USER_RT_PRIO-1;
+      sched_setscheduler(next_task->task_, SCHED_FIFO, &new_sparam);
+      do_gettimeofday(next_task->start_time);
+      current_running_task = next_task;
+      current_running_task->state = RUNNING_STATE;
+    }
+  }
+  else
+  {
+    if(list_empty(&taskList))
+    {
+      return;
+    }
+    list_for_each(pos, &taskList) {
+      entry = list_entry(pos, mp_t, p_list);
+      if (entry->state == READY_STATE) {
+        next_task = entry;
+        break;
+      }
+    }
+    if(next_task && next_task->state==READY
+    {
+      new_sparam.sched_priority=99;
+      sched_setscheduler(next_task->task_, SCHED_FIFO, &new_sparam);
+      do_gettimeofday(next_task->start_time);
+      wake_up_process(next_task->task_);
+      current_running_task = next_task;
+      current_running_task->state = RUNNING_STATE;
+    }
+  }
+}
+
+// Called when one of the tasks is waked up
+// The function checks if a context switch is needed and do the context switch
+static int dispatcher(void *data)
+{
+  while(1)
+  {
+    if(kthread_should_stop())
+    {
+      printk(KERN_ALERT "KTHREAD FINISH ITS JOB AND SHOULD STOP");
+      return 0;
+    }
+    printk(KERN_ALERT "DISPATCHING THREAD STARTS WORKING");
+    mutex_lock(&mp2_mutex); 
+    pick_task_to_run(); 
+    mutex_unlock(&mp2_mutex);
+    set_current_state(TASK_UNINTERRUPTIBLE);
+    schedule();
+  }
+  return 0;
+}
 
 
 
