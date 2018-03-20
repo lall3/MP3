@@ -106,7 +106,7 @@ static ssize_t pfile_read(struct file *file, char __user * buffer, size_t count,
     list_for_each(pos, &process_list) {
         tmp = list_entry(pos, mp2_t, p_list);
         memset(currData, 0, MAX_BUF_SIZE);
-        currByte = sprintf(currData, "%u, %lu, %lu\n", tmp->pid, tmp->period, tmp->proc_time);
+        currByte = sprintf(currData, "%u: %lu, %lu\n", tmp->pid, tmp->period, tmp->proc_time);
         strcat(buf, currData);
         copied += currByte;
     }

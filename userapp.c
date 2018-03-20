@@ -79,7 +79,7 @@ int check_status(pid_t pid)
     }
 
 	while ((read = getline(&line, &len, fp)) != -1) {
-        pid_buf = strtok(line, ",");
+        pid_buf = strtok(line, ":");
         if(atoi(pid_buf) == pid) {
         	return 0;
         }
