@@ -468,7 +468,7 @@ static void pick_task_to_run(void)
 
 // Called when one of the tasks is waked up
 // The function checks if a context switch is needed and do the context switch
-static int dispatcher(void *data)
+static int scheduler_dispatch(void *data)
 {
   while(1)
   {
