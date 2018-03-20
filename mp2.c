@@ -91,34 +91,36 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 // The function read the status file and print the information related out
 static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, loff_t * data)
 {
-  //locals need to be declared before anything
-  size_t ret_val=0;
-  int ctr, length;
-  char * read_buffer =NULL;
-  char read [256];// might need to be 128
-  //struct list_head * temp;
-  mp2_t * container; //mistake from MP1
+  
 
-  ctr = length = 0;
-  //kmalloc for k heap
-  read_buffer =(char *)( kmalloc(2048, GFP_KERNEL));
+   size_t copied = 0;
+    char * buf = NULL;
+    struct list_head *pos = NULL;
+    mp2_t *tmp = NULL;
+    char currData[MAX_BUF_SIZE];
+    int currByte;
+    buf = (char*) kmalloc(1024, GFP_KERNEL);
 
+    // read each node on the list and print the information as [pid: period, proc_time] to user
   mutex_lock(&mp2_mutex);
-  list_for_each_entry(container, &process_list, p_list)
-  {
-     memset(read, 0, 256);//resets read array
-     length= sprintf(read, "%u, %lu, %lu\n", container->pid, container->period, container->proc_time );
-     ctr += length;
-     strcat(read_buffer, read);
-  }
-  mutex_unlock(&mp2_mutex);
-  if (*data >0 ) return 0;
-  copy_to_user(buf, read_buffer,ctr);
+    list_for_each(pos, &process_list) {
+        tmp = list_entry(pos, mp2_t, p_list);
+        memset(currData, 0, MAX_BUF_SIZE);
+        currByte = sprintf(currData, "%u, %lu, %lu\n", tmp->pid, tmp->period, tmp->proc_time);
+        strcat(buf, currData);
+        copied += currByte;
+    }
+    mutex_unlock(&mp2_mutex);
 
-  kfree(read_buffer);
-  *data += ctr;
-  ret_val = ctr;
-  return ret_val;
+    if(*data>0)
+    {
+        return 0;
+    }
+    copy_to_user(buffer, buf, copied);
+    kfree(buf);
+    *data += copied;
+
+    return copied;
 }
 
 
