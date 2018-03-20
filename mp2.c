@@ -31,7 +31,7 @@ MODULE_DESCRIPTION("CS-423 MP2");
 typedef struct mp2_struct
 {
   struct task_struct* task_;
-  struct timer_list timer_list_;
+  struct timer_list timer_;
   unsigned int state;
   unsigned long period;
   unsigned long proc_time;
@@ -43,8 +43,8 @@ typedef struct mp2_struct
 
 }mp2_t;
 
-static struct proc_dir_entry *proc_dir;
-static struct proc_dir_entry *proc_entry;
+static struct proc_dir_entry *proc_dir_mp2;
+static struct proc_dir_entry *proc_dir_status;
 static struct mutex mp2_mutex;
 static struct kmem_cache *k_cahe;
 static mp2_t *my_current_task;
@@ -194,7 +194,7 @@ static void pick_task_to_run(void)
 
 // Called when one of the tasks is waked up
 // The function checks if a context switch is needed and do the context switch
-static int dispatching_thread(void *data)
+static int scheduler_dispatch(void *data)
 {
   while(1)
   {
@@ -467,7 +467,7 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
   return ret;
 }
 
-static const struct file_operations mp2_file = {
+static const struct file_operations mp2_file_ops = {
     .owner = THIS_MODULE,
     .read = mp2_read,
     .write = mp2_write,
