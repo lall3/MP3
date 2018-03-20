@@ -390,14 +390,18 @@ static int _yield_handler(char *pid)
   set_current_state(TASK_UNINTERRUPTIBLE);
   schedule();*/
 
+  unsigned long period_;
+  unsigned long p_time;
     mp2_t * curr= NULL;
     struct list_head  * pointer ;
     unsigned long time_;
     struct timeval tv;
+    pid_t * pid_ =kmalloc(sizeof(pid_t), GFP_KERNEL);
+    extract_data(input, pid_ , &period_ , &p_time);
     //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
     //pointer = NULL;
-    get_process_node(pid, pointer);
+    get_process_node(*pid, pointer);
     if(pointer == NULL)
     {
       printk(KERN_ALERT "Herin lies the error");
@@ -503,7 +507,7 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
   else if (buf[0] == 'Y') {
   // 2.yield: Y,PID
     printk(KERN_ALERT "YIELD PID:%s", buf+2);
-    _yield_handler(buf+2);
+    _yield_handler(buf);
   }
   else if (buf[0] == 'D') {
   // 3.unregister: D,PID
