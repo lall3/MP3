@@ -315,45 +315,7 @@ static int add_to_list(char *buf)
 }
 
 
-/*
-* Regsiter function. Adds task to list.
-* param : buffer copied from user
-*/
-static void register_helper(char * input)
-{
-  
-  struct list_head * t;
-  mp2_t * curr;
-  mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
-  struct timer_list * t_timer;
-  extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
-  printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
-  new_task->state = SLEEPING; //changed
-  //get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
-  
 
-  new_task->task_ = find_task_by_pid(new_task->pid);
-  new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
-  do_gettimeofday(new_task->start_time);
-  init_timer(&(new_task->timer_));
-  t_timer = &(new_task->timer_);
-  t_timer->data = (unsigned long)new_task;
-  t_timer->function = timer_handler;
-
-  mutex_lock(&mp2_mutex);
-  list_for_each(t ,&process_list){
-    curr= list_entry(t, mp2_t, p_list);
-    if(curr->period > new_task->period)
-    {
-      list_add_tail(&(new_task->p_list), t);
-      mutex_unlock(&mp2_mutex);
-      return;
-    }
-  }
-  list_add_tail(&(new_task->p_list), &process_list);
-  mutex_unlock(&mp2_mutex);
-
-}
 
 
 
@@ -409,7 +371,7 @@ static struct list_head *find_task_node_by_pid(char *pid)
 // Called when user input "Y" as command
 // Put yield task into sleeping state and start its wakeup timer
 static int _yield_handler(char *pid)
-{
+{/*
   mp2_t *yield_task;
     struct list_head *yield_pos;
   struct timeval curr_time;
@@ -426,7 +388,44 @@ static int _yield_handler(char *pid)
   wake_up_process(dispatcher);
 
   set_current_state(TASK_UNINTERRUPTIBLE);
-  schedule();
+  schedule();*/
+
+    mp2_t * curr= NULL;
+    struct list_head  * pointer ;
+    unsigned long time_;
+    struct timeval tv;
+    //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
+    //get the pointer to the process
+    //pointer = NULL;
+    //get_process_node2(pid, curr);
+    if(pointer == NULL)
+    {
+      printk(KERN_ALERT "Herin lies the error");
+      return;
+    }
+    pointer = find_task_node_by_pid(pid);
+    curr= list_entry(pointer, mp2_t, p_list);
+    if(curr == NULL)
+    {
+      //printk(KERN_ALERT "PID : %u not found while yeilding", pid);
+      goto fin_yeild;
+    }
+    printk(KERN_ALERT "FOUND (PID ) Yeilding");
+    curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
+    do_gettimeofday(&tv);
+printk(KERN_ALERT "TIMER STUFF 189");
+    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
+printk(KERN_ALERT "TIMER STUFF 191");
+    mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
+printk(KERN_ALERT "TIMER STUFF 192");
+    set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
+    my_current_task= NULL;
+    printk(KERN_ALERT "TIMER STUFF DONE");
+    fin_yeild:
+    wake_up_process(dispatcher);
+    set_current_state(TASK_UNINTERRUPTIBLE);
+    schedule();
+
 
   return 0;
 }
@@ -498,7 +497,7 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
   // Check the starting char of buf, if:
   // 1.register: R,PID,PERIOD,COMPUTATION
   if (buf[0] == 'R') {
-    register_helper(buf);
+    ret = add_to_list(buf+2);
     printk(KERN_ALERT "REGISTERED PID:%s", buf+2);
   }
   else if (buf[0] == 'Y') {
