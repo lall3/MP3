@@ -81,6 +81,14 @@ LIST_HEAD(process_list);
 
 
 
+static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned long * b)
+{
+  //make sure this works
+  char c;
+  sscanf(input, "%c, %d, %lu, %lu", &c, pid, a, b);
+  printk (KERN_ALERT "OG MGS %s", input);
+
+}
 
 /*
 * Removes node during distruction and once process is done executing
