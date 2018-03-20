@@ -409,9 +409,9 @@ static void pick_task_to_run(void)
 
   printk(KERN_ALERT "START TO PICK NEXT TASK");
 
-  if(current_running_task)
+  if(my_current_task)
   {
-    list_for_each(pos, &taskList) {
+    list_for_each(pos, &process_list) {
       entry = list_entry(pos, mp2_t, p_list);
       if (entry->state == READY_STATE) {
         next_task = entry;
@@ -438,7 +438,7 @@ static void pick_task_to_run(void)
       sched_setscheduler(next_task->task_, SCHED_FIFO, &new_sparam);
       do_gettimeofday(next_task->start_time);
       current_running_task = next_task;
-      current_running_task->state = RUNNING_STATE;
+      current_running_task->state = RUNNING;
     }
   }
   else
@@ -454,7 +454,7 @@ static void pick_task_to_run(void)
         break;
       }
     }
-    if(next_task && next_task->state==READY
+    if(next_task && next_task->state==READY)
     {
       new_sparam.sched_priority=99;
       sched_setscheduler(next_task->task_, SCHED_FIFO, &new_sparam);
