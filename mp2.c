@@ -89,7 +89,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 
 // Called when user application use "cat" or "fopen"
 // The function read the status file and print the information related out
-static ssize_t pfile_read(struct file *file, char __user * buffer, size_t count, loff_t * data)
+static ssize_t mp2_read(struct file *file, char __user * buffer, size_t count, loff_t * data)
 {
   
 
@@ -486,7 +486,7 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
 
 static const struct file_operations mp2_file_ops = {
     .owner = THIS_MODULE,
-    .read = pfile_read,
+    .read = mp2_read,
     .write = mp2_write,
 };
 
