@@ -280,8 +280,6 @@ static void yeild(char *pid)
 
 	set_current_state(TASK_UNINTERRUPTIBLE);
 	schedule();
-
-//	return 0;
 }
 
 
