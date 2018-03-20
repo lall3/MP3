@@ -46,7 +46,7 @@ typedef struct mp2_struct
 static struct proc_dir_entry *proc_dir_mp2;
 static struct proc_dir_entry *proc_dir_status;
 static struct mutex mp2_mutex;
-static struct kmem_cache *k_cahe;
+static struct kmem_cache *k_cache;
 static mp2_t *my_current_task;
 static struct task_struct *dispatcher;
 static spinlock_t mp2_lock;
@@ -292,7 +292,7 @@ static int add_to_list(char *buf)
 {
   struct list_head *pos;
   mp2_t *entry;
-  mp2_t *new_task = kmem_cache_alloc(k_cahe, GFP_KERNEL);
+  mp2_t *new_task = kmem_cache_alloc(k_cache, GFP_KERNEL);
 
   init_node(new_task, buf);
 
@@ -327,7 +327,7 @@ static void remove_node_from_list(struct list_head *pos)
   }
   list_del(pos);
   del_timer(&(entry->timer_));
-  kmem_cache_free(k_cahe, entry);
+  kmem_cache_free(k_cache, entry);
   mutex_unlock(&mp2_mutex);
 }
 
@@ -497,7 +497,7 @@ int __init mp2_init(void)
 
    //_workqueue = create_workqueue("mp2");
 
-   spin_lock_init(&mp2_spinlock);
+   spin_lock_init(&mp2_lock);
    mutex_init(&mp2_mutex);
 
    printk(KERN_ALERT "MP2 MODULE LOADED\n");
@@ -519,13 +519,13 @@ void __exit mp2_exit(void)
    //mutex_lock(&mp2_mutex);
 
 //mem leak_________________FIX!!!!!!!!!!
-  spin_lock(&mp2_spinlock);
+  spin_lock(&mp2_lock);
   //when making list_head, use that name
   
   list_for_each_safe(temp1, temp2, &process_list){
     remove_node_from_list(temp1);
    }
-   //spin_unlock(&mp2_spinlock);
+   //spin_unlock(&mp2_lock);
    //mutex_unlock(&mp2_mutex);
    
    remove_proc_entry("status", proc_dir_mp2);
@@ -536,7 +536,7 @@ void __exit mp2_exit(void)
    kmem_cache_destroy(k_cache);
 
    mutex_destroy(&mp2_mutex);
-  //spin_lock_destroy(&mp2_spinlock);
+  //spin_lock_destroy(&mp2_lock);
    printk(KERN_ALERT "MP2 MODULE UNLOADED\n");
 }
 
