@@ -413,13 +413,13 @@ static void pick_task_to_run(void)
   {
     list_for_each(pos, &process_list) {
       entry = list_entry(pos, mp2_t, p_list);
-      if (entry->state == READY_STATE) {
+      if (entry->state == READY) {
         next_task = entry;
         break;
       }
     }
     
-    prev_task = current_running_task;
+    prev_task = my_current_task;
     if(prev_task->state == RUNNING)
     {
       prev_task->state = READY;
@@ -443,7 +443,7 @@ static void pick_task_to_run(void)
   }
   else
   {
-    if(list_empty(&taskList))
+    if(list_empty(&process_list))
     {
       return;
     }
@@ -461,7 +461,7 @@ static void pick_task_to_run(void)
       do_gettimeofday(next_task->start_time);
       wake_up_process(next_task->task_);
       current_running_task = next_task;
-      current_running_task->state = RUNNING_STATE;
+      current_running_task->state = RUNNING;
     }
   }
 }
