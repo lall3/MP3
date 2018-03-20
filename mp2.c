@@ -449,7 +449,7 @@ static void pick_task_to_run(void)
     }
     list_for_each(pos, &process_list) {
       entry = list_entry(pos, mp2_t, p_list);
-      if (entry->state == READY_STATE) {
+      if (entry->state == READY) {
         next_task = entry;
         break;
       }
@@ -460,8 +460,8 @@ static void pick_task_to_run(void)
       sched_setscheduler(next_task->task_, SCHED_FIFO, &new_sparam);
       do_gettimeofday(next_task->start_time);
       wake_up_process(next_task->task_);
-      current_running_task = next_task;
-      current_running_task->state = RUNNING;
+      my_current_task = next_task;
+      my_current_task->state = RUNNING;
     }
   }
 }
