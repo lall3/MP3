@@ -26,27 +26,26 @@ MODULE_DESCRIPTION("CS-423 MP2");
 #define READY 1
 #define RUNNING 2
 
-
-//MP2 struct
-typedef struct mp2_struct
-{
+// A self-defined structure represents PCB
+// Index by pid, used as a node in the task linked list
+typedef struct mp2_task_struct {
   struct task_struct* task_;
   struct timer_list timer_;
-  unsigned int state;
-  unsigned long period;
-  unsigned long proc_time;
-  struct list_head p_list;
-  //truct timespec * ts;
-  struct timeval* start_time;//start time of program
-  unsigned long runtime;
   pid_t pid;
+  // 0 = SLEEPING
+  // 1 = READY
+  // 2 = RUNNING
+  int state;
+  unsigned long proc_time;
+  unsigned long period;
+  struct list_head p_list;
+  struct timeval *start_time;
+} mp2_t;
 
-}mp2_t;
-
-static struct proc_dir_entry *proc_dir_mp2;
-static struct proc_dir_entry *proc_dir_status;
+static struct proc_dir_entry *proc_dir;
+static struct proc_dir_entry *proc_entry;
 static struct mutex mp2_mutex;
-static struct kmem_cache *k_cache;
+static struct kmem_cache *k_cahe;
 static mp2_t *my_current_task;
 static struct task_struct *dispatcher;
 static spinlock_t mp2_lock;
@@ -91,9 +90,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 // The function read the status file and print the information related out
 static ssize_t mp2_read(struct file *file, char __user * buffer, size_t count, loff_t * data)
 {
-  
-
-   size_t copied = 0;
+    size_t copied = 0;
     char * buf = NULL;
     struct list_head *pos = NULL;
     mp2_t *tmp = NULL;
@@ -121,8 +118,8 @@ static ssize_t mp2_read(struct file *file, char __user * buffer, size_t count, l
     *data += copied;
 
     return copied;
-}
 
+}
 
 // Helper function for dispatching thread to pick the next running task
 // We will pick the ready task with highest priority
@@ -196,7 +193,7 @@ static void pick_task_to_run(void)
 
 // Called when one of the tasks is waked up
 // The function checks if a context switch is needed and do the context switch
-static int scheduler_dispatch(void *data)
+static int dispatching_thread(void *data)
 {
   while(1)
   {
@@ -215,23 +212,21 @@ static int scheduler_dispatch(void *data)
   return 0;
 }
 
-/*
-* wake up timer function handler
-*/
-void timer_handler(unsigned long in)
+// Called when one of the task's timer is expired
+// Set the task to ready state and call the dispatching thread
+void wakeup_timer_handler(unsigned long arg)
 {
-  unsigned long lock_flags;
-  mp2_t * curr= (mp2_t* ) in;
-
-  spin_lock_irqsave(&mp2_lock, lock_flags);
-  if(curr != my_current_task)
-  {
-    curr->state = READY;
+  unsigned long flags;
+  mp2_t *curr_node;
+  curr_node = (mp2_t *)arg;
+  spin_lock_irqsave(&mp2_lock, flags);
+  if (curr_node != my_current_task) {
+    curr_node -> state = READY;
   }
-  spin_unlock_irqrestore(&mp2_lock, lock_flags);
+  printk(KERN_ALERT "PROCESS %u IS WAKE UP, READY NOW", curr_node->pid);
+  spin_unlock_irqrestore(&mp2_lock, flags);
   wake_up_process(dispatcher);
 }
-
 
 // Helper function for parsing pid, period and process time
 // We store the parsed information in the call-by-reference parameters
@@ -287,7 +282,7 @@ static void init_node(mp2_t* new_task, char* buf)
     curr_timer = &(new_task->timer_);
     init_timer(curr_timer);
     curr_timer->data = (unsigned long)new_task;
-    curr_timer->function = timer_handler;
+    curr_timer->function = wakeup_timer_handler;
 }
 
 // Add a newly created task node into the existing task linked list
@@ -296,7 +291,7 @@ static int add_to_list(char *buf)
 {
   struct list_head *pos;
   mp2_t *entry;
-  mp2_t *new_task = kmem_cache_alloc(k_cache, GFP_KERNEL);
+  mp2_t *new_task = kmem_cache_alloc(k_cahe, GFP_KERNEL);
 
   init_node(new_task, buf);
 
@@ -314,15 +309,8 @@ static int add_to_list(char *buf)
   return -1;
 }
 
-
-
-
-
-
-
-
 // Free a allocated task node, remove it from the list
-static void remove_node_from_list(struct list_head *pos)
+static void destruct_node(struct list_head *pos)
 {
   mp2_t *entry;
 
@@ -338,7 +326,7 @@ static void remove_node_from_list(struct list_head *pos)
   }
   list_del(pos);
   del_timer(&(entry->timer_));
-  kmem_cache_free(k_cache, entry);
+  kmem_cache_free(k_cahe, entry);
   mutex_unlock(&mp2_mutex);
 }
 
@@ -390,51 +378,45 @@ static int _yield_handler(char *pid)
   set_current_state(TASK_UNINTERRUPTIBLE);
   schedule();
 
-
   return 0;
 }
 
 // Called when a new task incoming
 // Check if the new task and the existing tasks could be scheduled without
 // missing deadlines according to thir process time and period
-static int admission_control(char * input)
+static bool admission_control(char *buf)
 {
-  unsigned long period_;
-  unsigned long p_time;
-  mp2_t * tmp;
-  struct list_head * temp_list;
-  unsigned long ratio;
-  char c;
-  pid_t * pid_ =kmalloc(sizeof(pid_t), GFP_KERNEL);
+    struct list_head *pos;
+    mp2_t *entry;
+    pid_t curr_pid;
+    unsigned long curr_period;
+    unsigned long curr_proc_time;
+    int fixed_proc_time;
+    int fixed_period;
+    int ratio = 0;
 
-  if( input [0]== 'R')
-  {
-    extract_data(input, pid_ , &period_ , &p_time);
-    printk (KERN_ALERT "New  %d, %lu, %lu", *pid_, period_, p_time);
-    ratio = (p_time*1000)/(period_);
-  }
-  else
-  {
-    sscanf(input, "%c, %d", &c, pid_);
-    printk (KERN_ALERT "REQUESTED  %c", c);
-    return 1;
-  }
+    _read_process_info(buf, &curr_pid, &curr_period, &curr_proc_time);
+    ratio+=(int)curr_proc_time*1000/((int)curr_period);
+
   mutex_lock(&mp2_mutex);
-  list_for_each(temp_list, &process_list)
-  {
-    tmp = list_entry(temp_list, mp2_t, p_list);
-    ratio += ((unsigned int)(tmp->proc_time*1000/tmp->period));
-  }
+    list_for_each(pos, &process_list) {
+        entry = list_entry(pos, mp2_t, p_list);
+        fixed_proc_time = (int)entry->proc_time*1000;
+        fixed_period = (int)entry->period;
+        ratio += fixed_proc_time/fixed_period;
 
+    }
   mutex_unlock(&mp2_mutex);
-  if(ratio < 694)
-  {
-      printk(KERN_ALERT "Admission Passed");
-      return 1;
-  }
-  printk(KERN_ALERT "Admission failed ");
-  return 0;
-
+    if(ratio <= 693)
+    {
+        printk(KERN_ALERT "Process %u pass the admission control", curr_pid);
+        return true;
+    }
+    else
+    {
+        printk(KERN_ALERT "Process %u did not pass the admission control", curr_pid);
+        return false;
+    }
 }
 
 // Called when user application registered a process
@@ -467,12 +449,12 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
   else if (buf[0] == 'Y') {
   // 2.yield: Y,PID
     printk(KERN_ALERT "YIELD PID:%s", buf+2);
-    _yield_handler(buf);
+    _yield_handler(buf+2);
   }
   else if (buf[0] == 'D') {
   // 3.unregister: D,PID
         pos = find_task_node_by_pid(buf+2);
-        remove_node_from_list(pos);
+        destruct_node(pos);
         ret = -1;
     printk(KERN_ALERT "UNREGISTERED PID: %s", buf+2);
   }
@@ -484,77 +466,62 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
   return ret;
 }
 
-static const struct file_operations mp2_file_ops = {
+static const struct file_operations mp2_file = {
     .owner = THIS_MODULE,
     .read = mp2_read,
     .write = mp2_write,
 };
 
-
-/*
-* mp2_init - Called when module is loaded
-*/
+// mp2_init - Called when module is loaded
 int __init mp2_init(void)
 {
-   #ifdef DEBUG
-   printk(KERN_ALERT "MP2 MODULE LOADING\n");
-   #endif
+    #ifdef DEBUG
+    printk(KERN_ALERT "MP2 MODULE LOADING\n");
+    #endif
+    // create proc directory and file entry
+    proc_dir = proc_mkdir(DIRECTORY, NULL);
+    proc_entry = proc_create(FILENAME, 0666, proc_dir, & mp2_file);
+  my_current_task = NULL;
 
-   //proc setup
-   proc_dir_mp2 = proc_mkdir( "mp2" ,NULL);
-   proc_dir_status = proc_create("status", 0666, proc_dir_mp2, &mp2_file_ops);
+  // init kthread, binding dispatching thread function
+  dispatcher = kthread_create(dispatching_thread, NULL, "mp2");
 
-   //initializing globals
-   my_current_task = NULL;
+  // create cache for slab allocator
+  k_cahe = kmem_cache_create("k_cahe", sizeof(mp2_t), 0, SLAB_HWCACHE_ALIGN, NULL);
 
-   //add function name
-   dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
-   //slab accolator, edit this with proper arguments
-   k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
-
-   //_workqueue = create_workqueue("mp2");
-
-   spin_lock_init(&mp2_lock);
-   mutex_init(&mp2_mutex);
-
-   printk(KERN_ALERT "MP2 MODULE LOADED\n");
-   return 0;
+    // init mutex lock
+    mutex_init(&mp2_mutex);
+    spin_lock_init(&mp2_lock);
+  printk(KERN_ALERT "MP2 MODULE LOADED\n");
+    return 0;
 }
 
-
-
-/*
-* mp2_exit - Called when module is unloaded
-*
-*/
+// mp2_exit - Called when module is unloaded
 void __exit mp2_exit(void)
 {
-   struct list_head *temp1, *temp2;
-   #ifdef DEBUG
-   printk(KERN_ALERT "MP2 MODULE UNLOADING\n");
-   #endif
-   //mutex_lock(&mp2_mutex);
+    struct list_head *pos;
+    struct list_head *next;
 
-//mem leak_________________FIX!!!!!!!!!!
-  spin_lock(&mp2_lock);
-  //when making list_head, use that name
-  
-  list_for_each_safe(temp1, temp2, &process_list){
-    remove_node_from_list(temp1);
-   }
-   //spin_unlock(&mp2_lock);
-   //mutex_unlock(&mp2_mutex);
-   
-   remove_proc_entry("status", proc_dir_mp2);
-   remove_proc_entry("mp2", NULL);
+    #ifdef DEBUG
+    printk(KERN_ALERT "MP2 MODULE UNLOADING\n");
+    #endif
 
+    // remove every node on linked list and remove the list
+    list_for_each_safe(pos, next, &process_list){
+    destruct_node(pos);
+  }
 
-   kthread_stop(dispatcher );//check
-   kmem_cache_destroy(k_cache);
+    // remove file entry and repository
+    remove_proc_entry(FILENAME, proc_dir);
+    remove_proc_entry(DIRECTORY, NULL);
 
-   mutex_destroy(&mp2_mutex);
-  //spin_lock_destroy(&mp2_lock);
-   printk(KERN_ALERT "MP2 MODULE UNLOADED\n");
+  // stop dipatching thread
+  kthread_stop(dispatcher);
+
+  // destroy memory cache
+  kmem_cache_destroy(k_cahe);
+
+    printk(KERN_ALERT "MP2 MODULE UNLOADED\n");
 }
 
 // Register init and exit funtions
