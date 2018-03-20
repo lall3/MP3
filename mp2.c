@@ -437,8 +437,8 @@ static void pick_task_to_run(void)
       new_sparam.sched_priority=MAX_USER_RT_PRIO-1;
       sched_setscheduler(next_task->task_, SCHED_FIFO, &new_sparam);
       do_gettimeofday(next_task->start_time);
-      current_running_task = next_task;
-      current_running_task->state = RUNNING;
+      my_current_task = next_task;
+      my_current_task->state = RUNNING;
     }
   }
   else
@@ -447,7 +447,7 @@ static void pick_task_to_run(void)
     {
       return;
     }
-    list_for_each(pos, &taskList) {
+    list_for_each(pos, &process_list) {
       entry = list_entry(pos, mp2_t, p_list);
       if (entry->state == READY_STATE) {
         next_task = entry;
