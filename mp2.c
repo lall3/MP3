@@ -26,21 +26,22 @@ MODULE_DESCRIPTION("CS-423 MP2");
 #define READY 1
 #define RUNNING 2
 
-// A self-defined structure represents PCB
-// Index by pid, used as a node in the task linked list
-typedef struct mp2_task_struct {
+
+//MP2 struct
+typedef struct mp2_struct
+{
   struct task_struct* task_;
-  struct timer_list timer_;
-  pid_t pid;
-  // 0 = SLEEPING
-  // 1 = READY
-  // 2 = RUNNING
-  int state;
-  unsigned long proc_time;
+  struct timer_list timer_list_;
+  unsigned int state;
   unsigned long period;
+  unsigned long proc_time;
   struct list_head p_list;
-  struct timeval *start_time;
-} mp2_t;
+  //truct timespec * ts;
+  struct timeval* start_time;//start time of program
+  unsigned long runtime;
+  pid_t pid;
+
+}mp2_t;
 
 static struct proc_dir_entry *proc_dir;
 static struct proc_dir_entry *proc_entry;
@@ -310,7 +311,7 @@ static int add_to_list(char *buf)
 }
 
 // Free a allocated task node, remove it from the list
-static void destruct_node(struct list_head *pos)
+static void remove_node_from_list(struct list_head *pos)
 {
   mp2_t *entry;
 
@@ -454,7 +455,7 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
   else if (buf[0] == 'D') {
   // 3.unregister: D,PID
         pos = find_task_node_by_pid(buf+2);
-        destruct_node(pos);
+        remove_node_from_list(pos);
         ret = -1;
     printk(KERN_ALERT "UNREGISTERED PID: %s", buf+2);
   }
@@ -472,56 +473,71 @@ static const struct file_operations mp2_file = {
     .write = mp2_write,
 };
 
-// mp2_init - Called when module is loaded
+
+/*
+* mp2_init - Called when module is loaded
+*/
 int __init mp2_init(void)
 {
-    #ifdef DEBUG
-    printk(KERN_ALERT "MP2 MODULE LOADING\n");
-    #endif
-    // create proc directory and file entry
-    proc_dir = proc_mkdir(DIRECTORY, NULL);
-    proc_entry = proc_create(FILENAME, 0666, proc_dir, & mp2_file);
-  my_current_task = NULL;
+   #ifdef DEBUG
+   printk(KERN_ALERT "MP2 MODULE LOADING\n");
+   #endif
 
-  // init kthread, binding dispatching thread function
-  dispatcher = kthread_create(dispatching_thread, NULL, "mp2");
+   //proc setup
+   proc_dir_mp2 = proc_mkdir( "mp2" ,NULL);
+   proc_dir_status = proc_create("status", 0666, proc_dir_mp2, &mp2_file_ops);
 
-  // create cache for slab allocator
-  k_cahe = kmem_cache_create("k_cahe", sizeof(mp2_t), 0, SLAB_HWCACHE_ALIGN, NULL);
+   //initializing globals
+   my_current_task = NULL;
 
-    // init mutex lock
-    mutex_init(&mp2_mutex);
-    spin_lock_init(&mp2_lock);
-  printk(KERN_ALERT "MP2 MODULE LOADED\n");
-    return 0;
+   //add function name
+   dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
+   //slab accolator, edit this with proper arguments
+   k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
+
+   //_workqueue = create_workqueue("mp2");
+
+   spin_lock_init(&mp2_spinlock);
+   mutex_init(&mp2_mutex);
+
+   printk(KERN_ALERT "MP2 MODULE LOADED\n");
+   return 0;
 }
 
-// mp2_exit - Called when module is unloaded
+
+
+/*
+* mp2_exit - Called when module is unloaded
+*
+*/
 void __exit mp2_exit(void)
 {
-    struct list_head *pos;
-    struct list_head *next;
+   struct list_head *temp1, *temp2;
+   #ifdef DEBUG
+   printk(KERN_ALERT "MP2 MODULE UNLOADING\n");
+   #endif
+   //mutex_lock(&mp2_mutex);
 
-    #ifdef DEBUG
-    printk(KERN_ALERT "MP2 MODULE UNLOADING\n");
-    #endif
+//mem leak_________________FIX!!!!!!!!!!
+  spin_lock(&mp2_spinlock);
+  //when making list_head, use that name
+  
+  list_for_each_safe(temp1, temp2, &process_list){
+    remove_node_from_list(temp1);
+   }
+   //spin_unlock(&mp2_spinlock);
+   //mutex_unlock(&mp2_mutex);
+   
+   remove_proc_entry("status", proc_dir_mp2);
+   remove_proc_entry("mp2", NULL);
 
-    // remove every node on linked list and remove the list
-    list_for_each_safe(pos, next, &process_list){
-    destruct_node(pos);
-  }
 
-    // remove file entry and repository
-    remove_proc_entry(FILENAME, proc_dir);
-    remove_proc_entry(DIRECTORY, NULL);
+   kthread_stop(dispatcher );//check
+   kmem_cache_destroy(k_cache);
 
-  // stop dipatching thread
-  kthread_stop(dispatcher);
-
-  // destroy memory cache
-  kmem_cache_destroy(k_cahe);
-
-    printk(KERN_ALERT "MP2 MODULE UNLOADED\n");
+   mutex_destroy(&mp2_mutex);
+  //spin_lock_destroy(&mp2_spinlock);
+   printk(KERN_ALERT "MP2 MODULE UNLOADED\n");
 }
 
 // Register init and exit funtions
