@@ -400,19 +400,19 @@ static int scheduler_dispatch (void * data)
 
 static void pick_task_to_run(void)
 {
-  mp_t *entry;
-  mp_t *prev_task;
+  mp2_t *entry;
+  mp2_t *prev_task;
   struct sched_param new_sparam; 
   struct sched_param old_sparam; 
   struct list_head *pos;
-  mp_t *next_task=NULL;
+  mp2_t *next_task=NULL;
 
   printk(KERN_ALERT "START TO PICK NEXT TASK");
 
   if(current_running_task)
   {
     list_for_each(pos, &taskList) {
-      entry = list_entry(pos, mp_t, p_list);
+      entry = list_entry(pos, mp2_t, p_list);
       if (entry->state == READY_STATE) {
         next_task = entry;
         break;
@@ -448,7 +448,7 @@ static void pick_task_to_run(void)
       return;
     }
     list_for_each(pos, &taskList) {
-      entry = list_entry(pos, mp_t, p_list);
+      entry = list_entry(pos, mp2_t, p_list);
       if (entry->state == READY_STATE) {
         next_task = entry;
         break;
