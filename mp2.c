@@ -393,8 +393,8 @@ static int admission_control(char * input)
   struct list_head * temp_list;
   unsigned long ratio;
   char c;
-  pid_t * pid_;
-  
+  pid_t * pid_ =kmalloc(sizeof(pid_t), GFP_KERNEL);
+
   if( input [0]== 'R')
   {
     extract_data(input, pid_ , &period_ , &p_time);
