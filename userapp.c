@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 
     gettimeofday(&t0, NULL);
 
-    yield(pid); //Proc filesystem
+    //yield(pid); //Proc filesystem
 
     // real-time loop
     for(i = 0; i < 5; i++) {
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 		gettimeofday(&t0, NULL);
         job_process_time = t0.tv_usec/1000 + t0.tv_sec*1000 - wakeup_time;
         printf ( "pid: %u, proc time: %ld ms, result: %d\n", pid, job_process_time, ret);
-		yield(pid);
+		//yield(pid);
 	}
     unreg(pid);
 

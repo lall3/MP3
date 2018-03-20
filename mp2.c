@@ -104,6 +104,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
       curr=list_entry(temp1 , mp2_t , p_list);
       if(pid_ == curr->pid)
       {
+        printk(KERN_ALERT "PID FOUND %u", pid_);
         ret = temp1;
         break;
       }
