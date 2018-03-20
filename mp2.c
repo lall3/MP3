@@ -371,7 +371,7 @@ static struct list_head *find_task_node_by_pid(char *pid)
 // Called when user input "Y" as command
 // Put yield task into sleeping state and start its wakeup timer
 static int _yield_handler(char *pid)
-{/*
+{
   mp2_t *yield_task;
     struct list_head *yield_pos;
   struct timeval curr_time;
@@ -388,47 +388,7 @@ static int _yield_handler(char *pid)
   wake_up_process(dispatcher);
 
   set_current_state(TASK_UNINTERRUPTIBLE);
-  schedule();*/
-
-  unsigned long period_;
-  unsigned long p_time;
-    mp2_t * curr= NULL;
-    struct list_head  * pointer = NULL;
-    unsigned long time_;
-    struct timeval tv;
-    pid_t * pid_ =kmalloc(sizeof(pid_t), GFP_KERNEL);
-    extract_data(pid, pid_ , &period_ , &p_time);
-    //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
-    //get the pointer to the process
-    //pointer = NULL;
-    get_process_node(*pid, pointer);
-    if(pointer == NULL)
-    {
-      printk(KERN_ALERT "Herin lies the error");
-      return 0;
-    }
-    pointer = find_task_node_by_pid(pid);
-    curr= list_entry(pointer, mp2_t, p_list);
-    if(curr == NULL)
-    {
-      //printk(KERN_ALERT "PID : %u not found while yeilding", pid);
-      goto fin_yeild;
-    }
-    printk(KERN_ALERT "FOUND (PID ) Yeilding");
-    curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
-    do_gettimeofday(&tv);
-printk(KERN_ALERT "TIMER STUFF 189");
-    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
-printk(KERN_ALERT "TIMER STUFF 191");
-    mod_timer(&(curr->timer_), jiffies+ msecs_to_jiffies(curr->period - time_));
-printk(KERN_ALERT "TIMER STUFF 192");
-    set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
-    my_current_task= NULL;
-    printk(KERN_ALERT "TIMER STUFF DONE");
-    fin_yeild:
-    wake_up_process(dispatcher);
-    set_current_state(TASK_UNINTERRUPTIBLE);
-    schedule();
+  schedule();
 
 
   return 0;
