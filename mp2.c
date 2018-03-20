@@ -393,7 +393,7 @@ static int _yield_handler(char *pid)
   unsigned long period_;
   unsigned long p_time;
     mp2_t * curr= NULL;
-    struct list_head  * pointer ;
+    struct list_head  * pointer = NULL;
     unsigned long time_;
     struct timeval tv;
     pid_t * pid_ =kmalloc(sizeof(pid_t), GFP_KERNEL);
