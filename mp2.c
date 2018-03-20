@@ -397,7 +397,7 @@ static int _yield_handler(char *pid)
     unsigned long time_;
     struct timeval tv;
     pid_t * pid_ =kmalloc(sizeof(pid_t), GFP_KERNEL);
-    extract_data(input, pid_ , &period_ , &p_time);
+    extract_data(pid, pid_ , &period_ , &p_time);
     //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
     //get the pointer to the process
     //pointer = NULL;
