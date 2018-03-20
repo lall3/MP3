@@ -91,6 +91,27 @@ static void extract_data(char * input, pid_t * pid, unsigned long * a, unsigned 
 }
 
 /*
+* returns pointer to node of given pid as param
+*/
+static void get_process_node(pid_t pid_,  struct list_head * ret)
+{
+    struct list_head * temp1, *temp2;
+    mp2_t * curr;
+    //ret=NULL;
+    mutex_lock(&mp2_mutex);
+    list_for_each_safe(temp1, temp2, &process_list)
+    {
+      curr=list_entry(temp1 , mp2_t , p_list);
+      if(pid_ == curr->pid)
+      {
+        ret = temp1;
+        break;
+      }
+    }
+    mutex_unlock(&mp2_mutex);
+}
+
+/*
 * Removes node during distruction and once process is done executing
 * used during exit and destruct
 */
