@@ -89,38 +89,38 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 
 // Called when user application use "cat" or "fopen"
 // The function read the status file and print the information related out
-static ssize_t mp2_read(struct file *file, char __user * buffer, size_t count, loff_t * data)
+static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, loff_t * data)
 {
-    size_t copied = 0;
-    char * buf = NULL;
-    struct list_head *pos = NULL;
-    mp2_t *tmp = NULL;
-    char currData[MAX_BUF_SIZE];
-    int currByte;
-    buf = (char*) kmalloc(1024, GFP_KERNEL);
+  //locals need to be declared before anything
+  size_t ret_val=0;
+  int ctr, length;
+  char * read_buffer =NULL;
+  char read [256];// might need to be 128
+  //struct list_head * temp;
+  mp2_t * container; //mistake from MP1
 
-    // read each node on the list and print the information as [pid: period, proc_time] to user
+  ctr = length = 0;
+  //kmalloc for k heap
+  read_buffer =(char *)( kmalloc(2048, GFP_KERNEL));
+
   mutex_lock(&mp2_mutex);
-    list_for_each(pos, &process_list) {
-        tmp = list_entry(pos, mp2_t, p_list);
-        memset(currData, 0, MAX_BUF_SIZE);
-        currByte = sprintf(currData, "%u: %lu, %lu\n", tmp->pid, tmp->period, tmp->proc_time);
-        strcat(buf, currData);
-        copied += currByte;
-    }
-    mutex_unlock(&mp2_mutex);
+  list_for_each_entry(container, &process_list, p_list)
+  {
+     memset(read, 0, 256);//resets read array
+     length= sprintf(read, "%u, %lu, %lu\n", container->pid, container->period, container->proc_time );
+     ctr += length;
+     strcat(read_buffer, read);
+  }
+  mutex_unlock(&mp2_mutex);
+  if (*data >0 ) return 0;
+  copy_to_user(buf, read_buffer,ctr);
 
-    if(*data>0)
-    {
-        return 0;
-    }
-    copy_to_user(buffer, buf, copied);
-    kfree(buf);
-    *data += copied;
-
-    return copied;
-
+  kfree(read_buffer);
+  *data += ctr;
+  ret_val = ctr;
+  return ret_val;
 }
+
 
 // Helper function for dispatching thread to pick the next running task
 // We will pick the ready task with highest priority
@@ -385,39 +385,44 @@ static int _yield_handler(char *pid)
 // Called when a new task incoming
 // Check if the new task and the existing tasks could be scheduled without
 // missing deadlines according to thir process time and period
-static bool admission_control(char *buf)
+static int admission_control(char * input)
 {
-    struct list_head *pos;
-    mp2_t *entry;
-    pid_t curr_pid;
-    unsigned long curr_period;
-    unsigned long curr_proc_time;
-    int fixed_proc_time;
-    int fixed_period;
-    int ratio = 0;
-
-    _read_process_info(buf, &curr_pid, &curr_period, &curr_proc_time);
-    ratio+=(int)curr_proc_time*1000/((int)curr_period);
-
+  unsigned long period_;
+  unsigned long p_time;
+  mp2_t * tmp;
+  struct list_head * temp_list;
+  unsigned long ratio;
+  char c;
+  pid_t * pid_;
+  
+  if( input [0]== 'R')
+  {
+    extract_data(input, pid_ , &period_ , &p_time);
+    printk (KERN_ALERT "New  %d, %lu, %lu", *pid_, period_, p_time);
+    ratio = (p_time*1000)/(period_);
+  }
+  else
+  {
+    sscanf(input, "%c, %d", &c, pid_);
+    printk (KERN_ALERT "REQUESTED  %c", c);
+    return 1;
+  }
   mutex_lock(&mp2_mutex);
-    list_for_each(pos, &process_list) {
-        entry = list_entry(pos, mp2_t, p_list);
-        fixed_proc_time = (int)entry->proc_time*1000;
-        fixed_period = (int)entry->period;
-        ratio += fixed_proc_time/fixed_period;
+  list_for_each(temp_list, &process_list)
+  {
+    tmp = list_entry(temp_list, mp2_t, p_list);
+    ratio += ((unsigned int)(tmp->proc_time*1000/tmp->period));
+  }
 
-    }
   mutex_unlock(&mp2_mutex);
-    if(ratio <= 693)
-    {
-        printk(KERN_ALERT "Process %u pass the admission control", curr_pid);
-        return true;
-    }
-    else
-    {
-        printk(KERN_ALERT "Process %u did not pass the admission control", curr_pid);
-        return false;
-    }
+  if(ratio < 694)
+  {
+      printk(KERN_ALERT "Admission Passed");
+      return 1;
+  }
+  printk(KERN_ALERT "Admission failed ");
+  return 0;
+
 }
 
 // Called when user application registered a process
@@ -469,7 +474,7 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
 
 static const struct file_operations mp2_file_ops = {
     .owner = THIS_MODULE,
-    .read = mp2_read,
+    .read = pfile_read,
     .write = mp2_write,
 };
 
