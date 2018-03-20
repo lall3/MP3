@@ -416,7 +416,7 @@ static int _yield_handler(char *pid)
 printk(KERN_ALERT "TIMER STUFF 189");
     time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
 printk(KERN_ALERT "TIMER STUFF 191");
-    mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
+    mod_timer(&(curr->timer_), jiffies+ msecs_to_jiffies(curr->period - time_));
 printk(KERN_ALERT "TIMER STUFF 192");
     set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
     my_current_task= NULL;
