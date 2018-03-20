@@ -215,21 +215,23 @@ static int scheduler_dispatch(void *data)
   return 0;
 }
 
-// Called when one of the task's timer is expired
-// Set the task to ready state and call the dispatching thread
-void wakeup_timer_handler(unsigned long arg)
+/*
+* wake up timer function handler
+*/
+void timer_handler(unsigned long in)
 {
-  unsigned long flags;
-  mp2_t *curr_node;
-  curr_node = (mp2_t *)arg;
-  spin_lock_irqsave(&mp2_lock, flags);
-  if (curr_node != my_current_task) {
-    curr_node -> state = READY;
+  unsigned long lock_flags;
+  mp2_t * curr= (mp2_t* ) in;
+
+  spin_lock_irqsave(&mp2_spinlock, lock_flags);
+  if(curr != my_current_task)
+  {
+    curr->state = READY;
   }
-  printk(KERN_ALERT "PROCESS %u IS WAKE UP, READY NOW", curr_node->pid);
-  spin_unlock_irqrestore(&mp2_lock, flags);
+  spin_unlock_irqrestore(&mp2_spinlock, lock_flags);
   wake_up_process(dispatcher);
 }
+
 
 // Helper function for parsing pid, period and process time
 // We store the parsed information in the call-by-reference parameters
@@ -285,7 +287,7 @@ static void init_node(mp2_t* new_task, char* buf)
     curr_timer = &(new_task->timer_);
     init_timer(curr_timer);
     curr_timer->data = (unsigned long)new_task;
-    curr_timer->function = wakeup_timer_handler;
+    curr_timer->function = timer_handler;
 }
 
 // Add a newly created task node into the existing task linked list
@@ -311,6 +313,51 @@ static int add_to_list(char *buf)
   mutex_unlock(&mp2_mutex);
   return -1;
 }
+
+
+/*
+* Regsiter function. Adds task to list.
+* param : buffer copied from user
+*/
+static void register_helper(char * input)
+{
+  
+  struct list_head * t;
+  mp2_t * curr;
+  mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
+  struct timer_list * t_timer;
+  extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
+  printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
+  new_task->state = SLEEPING; //changed
+  //get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
+  
+
+  new_task->task_ = find_task_by_pid(new_task->pid);
+  new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
+  do_gettimeofday(new_task->start_time);
+  init_timer(&(new_task->timer_list_));
+  t_timer = &(new_task->timer_list_);
+  t_timer->data = (unsigned long)new_task;
+  t_timer->function = timer_handler;
+
+  mutex_lock(&mp2_mutex);
+  list_for_each(t ,&process_list){
+    curr= list_entry(t, mp2_t, p_list);
+    if(curr->period > new_task->period)
+    {
+      list_add_tail(&(new_task->p_list), t);
+      mutex_unlock(&mp2_mutex);
+      return;
+    }
+  }
+  list_add_tail(&(new_task->p_list), &process_list);
+  mutex_unlock(&mp2_mutex);
+
+}
+
+
+
+
 
 // Free a allocated task node, remove it from the list
 static void remove_node_from_list(struct list_head *pos)
@@ -451,7 +498,7 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
   // Check the starting char of buf, if:
   // 1.register: R,PID,PERIOD,COMPUTATION
   if (buf[0] == 'R') {
-    ret = add_to_list(buf+2);
+    ret = register_helper(buf);
     printk(KERN_ALERT "REGISTERED PID:%s", buf+2);
   }
   else if (buf[0] == 'Y') {
