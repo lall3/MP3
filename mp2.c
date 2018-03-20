@@ -335,8 +335,8 @@ static void register_helper(char * input)
   new_task->task_ = find_task_by_pid(new_task->pid);
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
   do_gettimeofday(new_task->start_time);
-  init_timer(&(new_task->timer_list_));
-  t_timer = &(new_task->timer_list_);
+  init_timer(&(new_task->timer_));
+  t_timer = &(new_task->timer_);
   t_timer->data = (unsigned long)new_task;
   t_timer->function = timer_handler;
 
@@ -498,7 +498,7 @@ static ssize_t mp2_write(struct file *file, const char __user *buffer, size_t co
   // Check the starting char of buf, if:
   // 1.register: R,PID,PERIOD,COMPUTATION
   if (buf[0] == 'R') {
-    ret = register_helper(buf);
+    register_helper(buf);
     printk(KERN_ALERT "REGISTERED PID:%s", buf+2);
   }
   else if (buf[0] == 'Y') {
