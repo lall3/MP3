@@ -89,7 +89,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 
 // Called when user application use "cat" or "fopen"
 // The function read the status file and print the information related out
-static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, loff_t * data)
+static ssize_t pfile_read(struct file *file, char __user * buffer, size_t count, loff_t * data)
 {
   
 
