@@ -397,8 +397,6 @@ static int admission_control(char * input, pid_t * pid_)
 static void register_helper(char * input)
 {
   
-  //struct list_head * t;
-  //mp2_t * curr;
   mp2_t * new_task;
   new_task = (mp2_t *)kmem_cache_alloc(k_cache, GFP_KERNEL);//( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
   //struct timer_list * t_timer;
@@ -412,10 +410,10 @@ static void register_helper(char * input)
   new_task->task_ = find_task_by_pid(new_task->pid);
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
   do_gettimeofday(new_task->start_time);
-  new_task->runtime=0;
+  new_task->runtime = 0;
 
   
-  setup_timer( &new_task->timer_list_ , timer_handler, (unsigned long) new_task); 
+  setup_timer( &(new_task->timer_list_) , timer_handler, (unsigned long) new_task); 
 
   mutex_lock(&mp2_mutex);
   
@@ -557,7 +555,7 @@ int __init mp2_init(void)
    //add function name
    //slab accolator, edit this with proper arguments
    //k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
-   k_cache = KMEM_CACHE(mp2_struct , SLAB_PANIC);
+   k_cache = kmem_cache_create("k_cache", sizeof(mp2_t) , 0, 0, NULL);//KMEM_CACHE(mp2_struct , SLAB_PANIC);
    dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
 
    //_workqueue = create_workqueue("mp2");
