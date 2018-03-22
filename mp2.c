@@ -357,6 +357,7 @@ static int scheduler_dispatch (void * data)
   }
 
   printk(KERN_ALERT "KTHREAD FINISHED");*/
+  set_current_state(TASK_INTERRUPTIBLE);
   return 0;
 
 }
