@@ -142,7 +142,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
         ret = temp1;
         //added 
         list_del(temp1);
-        del_timer(&(curr->task_timer));
+        del_timer(&(curr->timer_list_));
         kmem_cache_free(k_cache,curr);
 
 
