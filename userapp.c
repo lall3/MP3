@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     int i, ret, temp;
 	time_t current_time;
     char* read_line= NULL;
-    int param =0;
+    size_t param =0;
 
     FILE * proc = fopen( "/proc/mp2/status", "a+");
     if(!proc) {

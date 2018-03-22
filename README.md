@@ -1,4 +1,4 @@
-MP2 doccumentation
+MP2 documentation
 
 
 Run code by running the following
@@ -21,5 +21,8 @@ As for the timer_handler that behaves as the top half, I used something very sim
 I used 2 functions to deal with the top half. On invokes the helper function that finds a task to schedule and uses linux api to schedule the new task that is found.
 
 My mod still has a null pointer error whilst changing between tasks. I was unable to fix it.
+
+Addmission control does nt using any floating point arethmetic as per the documentation.
+
 
 
