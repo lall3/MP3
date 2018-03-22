@@ -288,7 +288,7 @@ static void schedule_next_task(void)
   mp2_t *tmp;
   printk(KERN_ALERT "SCHEDULAR HELPER STARTING");
   running_task= my_current_task;
-  if(my_current_task != NULL)
+  if(my_current_task != NULL )
   {
     //printk(KERN_ALERT "291");
     list_for_each_safe(temp1, temp2, &process_list)
@@ -309,6 +309,7 @@ static void schedule_next_task(void)
     if(running_task->task_ !=NULL)
     {
       sparam.sched_priority=0;
+      printk(KERN_ALERT "309");
       sched_setscheduler(running_task->task_, SCHED_NORMAL, &sparam);
     }
     printk(KERN_ALERT "308");
