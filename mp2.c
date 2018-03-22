@@ -213,7 +213,7 @@ static struct list_head *find_task_node_by_pid(char *pid)
 /*
 * yields process
 * helper function , linked to file write
-*//*
+*/
 static void yeild( char * pid)
 {
     mp2_t * curr= NULL;
@@ -224,7 +224,7 @@ static void yeild( char * pid)
     //get the pointer to the process
     //pointer = NULL;
 
-    //get_process_node2(pid, curr);
+    get_process_node2(pid, curr);
     if(pointer == NULL)
     {
       printk(KERN_ALERT "Herin lies the error");
@@ -257,8 +257,8 @@ printk(KERN_ALERT "TIMER STUFF 192");
     schedule();
 
 
-}*/
-
+}
+/*
 static void yeild(char *pid)
 {
 
@@ -283,7 +283,7 @@ static void yeild(char *pid)
 
 //  return 0;
 }
-
+*/
 
 
 
@@ -430,10 +430,10 @@ static int admission_control(char * input, pid_t * pid_)
 */
 static void register_helper(char * input)
 {
-  /*
+  
   struct list_head * t;
   mp2_t * curr;
-  mp2_t * new_task = kmem_cache_alloc(k_cache, GFP_KERNEL );
+  mp2_t * new_task = (struct timeval*)( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
   struct timer_list * t_timer;
 
 
@@ -463,9 +463,10 @@ static void register_helper(char * input)
   }
   list_add_tail(&(new_task->p_list), &process_list);
   mutex_unlock(&mp2_mutex);
-*/
+
 }
 
+/*
 static void init_node(mp2_t* new_task, char* buf)
 {
     struct timer_list *curr_timer;
@@ -507,7 +508,7 @@ static int add_to_list(char *buf)
   return -1;
 }
 
-
+*/
 
 //-----------------------------------------------------------------------
 //File struct, read and write
@@ -587,7 +588,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //yeild
       printk(KERN_ALERT "starting %u YEILD", _pid_);
-      yeild(t_buffer +2);
+      yeild(_pid_);
       printk(KERN_ALERT "PID %u YEILD", _pid_);
     }
     else if(cmd =='D')
@@ -671,13 +672,13 @@ void __exit mp2_exit(void)
 //mem leak_________________FIX!!!!!!!!!!
   //spin_lock(&mp2_spinlock);
   //when making list_head, use that name
-  /*
+  
   list_for_each_safe(temp1, temp2, &process_list){
     remove_node_from_list(temp1);
    }
    //spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
-   */
+   
    remove_proc_entry("status", proc_dir_mp2);
    remove_proc_entry("mp2", NULL);
 
