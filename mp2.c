@@ -84,7 +84,6 @@ static int admission_control(char * input, pid_t * pid_);
 //-------------------------------------------------------------------------------------------------------------------------------
 //Helper functions
 
-static int scheduler_dispatch (void * data);
 /*
 * Removes node during distruction and once process is done executing
 */
@@ -257,9 +256,8 @@ static void yeild( pid_t pid)
 
     printk(KERN_ALERT "TIMER STUFF DONE");
     fin_yeild:
-    //wake_up_process(dispatcher);
-    //schedule();
-    scheduler_dispatch((void *) 1000);
+    wake_up_process(dispatcher);
+    schedule();
 
 
 }
@@ -347,8 +345,10 @@ static void schedule_next_task(void)
 static int scheduler_dispatch (void * data)
 {
   printk(KERN_ALERT "STARTING DISPATCHER");
-  if (kthread_should_stop())
-    return 0;
+  while(1)
+  {
+    if (kthread_should_stop())
+      return 0;
     printk("DISPATCHING THREAD STARTING");
     mutex_lock(&mp2_mutex);
     schedule_next_task();
@@ -356,6 +356,7 @@ static int scheduler_dispatch (void * data)
     set_current_state(TASK_INTERRUPTIBLE); //might be in yeild
     schedule();
     printk(KERN_ALERT "PID %d being scheduled", my_current_task->pid);
+  }
 
   printk(KERN_ALERT "KTHREAD FINISHED");
   //set_current_state(TASK_INTERRUPTIBLE);
