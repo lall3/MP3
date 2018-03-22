@@ -309,7 +309,6 @@ static void schedule_next_task(void)
     if(running_task->task_ !=NULL)
     {
       sparam.sched_priority=0;
-      printk(KERN_ALERT "309");
       sched_setscheduler(running_task->task_, SCHED_NORMAL, &sparam);
     }
     printk(KERN_ALERT "308");
