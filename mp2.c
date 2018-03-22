@@ -180,13 +180,13 @@ void timer_handler(unsigned long in)
 
   printk(KERN_ALERT "Reached wakeup timer");
 
-  spin_lock_irqsave(&mp2_spinlock, lock_flags);
+  spin_lock(&mp2_spinlock);
   if(curr != NULL)
   { 
     curr->state = READY;
     printk(KERN_ALERT "woek up %u", curr->pid);
   }
-  spin_unlock_irqrestore(&mp2_spinlock, lock_flags);
+  spin_unlock(&mp2_spinlock);
 
   printk(KERN_ALERT "WAKING UP SCHEDULER");
   wake_up_process(dispatcher);
@@ -257,7 +257,6 @@ static void yeild( pid_t pid)
     printk(KERN_ALERT "TIMER STUFF DONE");
     fin_yeild:
     wake_up_process(dispatcher);
-    //set_current_state(TASK_UNINTERRUPTIBLE);
     schedule();
 
 
@@ -346,10 +345,8 @@ static void schedule_next_task(void)
 static int scheduler_dispatch (void * data)
 {
   printk(KERN_ALERT "STARTING DISPATCHER");
-  while(1)
-  {
-    if (kthread_should_stop())
-      return 0;
+  if (kthread_should_stop())
+    return 0;
     printk("DISPATCHING THREAD STARTING");
     mutex_lock(&mp2_mutex);
     schedule_next_task();
@@ -357,7 +354,6 @@ static int scheduler_dispatch (void * data)
     set_current_state(TASK_INTERRUPTIBLE); //might be in yeild
     schedule();
     printk(KERN_ALERT "PID %d being scheduled", my_current_task->pid);
-  }
 
   printk(KERN_ALERT "KTHREAD FINISHED");
   //set_current_state(TASK_INTERRUPTIBLE);
@@ -575,8 +571,9 @@ int __init mp2_init(void)
    //add function name
    //slab accolator, edit this with proper arguments
    //k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
-   k_cache = kmem_cache_create("k_cache", sizeof(mp2_t) , 0, 0, NULL);//KMEM_CACHE(mp2_struct , SLAB_PANIC);
    dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
+   k_cache = kmem_cache_create("k_cache", sizeof(mp2_t) , 0, 0, NULL);//KMEM_CACHE(mp2_struct , SLAB_PANIC);
+   //dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
 
    //_workqueue = create_workqueue("mp2");
 
