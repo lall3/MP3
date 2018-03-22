@@ -256,8 +256,9 @@ static void yeild( pid_t pid)
 
     printk(KERN_ALERT "TIMER STUFF DONE");
     fin_yeild:
-    wake_up_process(dispatcher);
-    schedule();
+    //wake_up_process(dispatcher);
+    //schedule();
+    scheduler_dispatch();
 
 
 }
