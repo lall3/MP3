@@ -576,7 +576,6 @@ int __init mp2_init(void)
    //add function name
    //slab accolator, edit this with proper arguments
    //k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
-   dispatcher = kthread_run( &scheduler_dispatch , NULL , "dispatcher");
    k_cache = kmem_cache_create("k_cache", sizeof(mp2_t) , 0, 0, NULL);//KMEM_CACHE(mp2_struct , SLAB_PANIC);
    //dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
 
@@ -584,6 +583,7 @@ int __init mp2_init(void)
 
    spin_lock_init(&mp2_spinlock);
    mutex_init(&mp2_mutex);
+   dispatcher = kthread_run( scheduler_dispatch , NULL , "dispatcher");
 
    printk(KERN_ALERT "MP2 MODULE LOADED\n");
    return 0;
