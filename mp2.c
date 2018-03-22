@@ -217,7 +217,7 @@ static struct list_head *find_task_node_by_pid(char *pid)
 static void yeild( pid_t pid)
 {
     mp2_t * curr= NULL;
-    struct list_head  * pointer ;
+    struct list_head  * pointer = NULL;
     unsigned long time_;
     struct timeval tv;
     //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
@@ -230,7 +230,7 @@ static void yeild( pid_t pid)
       printk(KERN_ALERT "Herin lies the error");
       return;
     }
-    pointer = find_task_node_by_pid(pid);
+    //pointer = find_task_node_by_pid(pid);
     curr= list_entry(pointer, mp2_t, p_list);
     if(curr == NULL)
     {
