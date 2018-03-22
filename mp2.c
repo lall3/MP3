@@ -336,7 +336,7 @@ static void schedule_next_task(void)
 */
 static int scheduler_dispatch (void * data)
 {
-  /*
+  
   while(1)
   {
     if (kthread_should_stop())
@@ -350,7 +350,7 @@ static int scheduler_dispatch (void * data)
     printk(KERN_ALERT "PID %d being scheduled", my_current_task->pid);
   }
 
-  printk(KERN_ALERT "KTHREAD FINISHED");*/
+  printk(KERN_ALERT "KTHREAD FINISHED");
   return 0;
 
 }
@@ -512,7 +512,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //yeild
       printk(KERN_ALERT "starting %u YEILD", _pid_);
-      //yeild(_pid_);
+      yeild(_pid_);
       printk(KERN_ALERT "PID %u YEILD", _pid_);
     }
     else if(cmd =='D')
