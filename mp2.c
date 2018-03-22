@@ -243,9 +243,8 @@ static void yeild( pid_t pid)
     printk(KERN_ALERT "FOUND (PID ) Yeilding");
     curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
     do_gettimeofday(&tv);
-    printk(KERN_ALERT "TIMER STUFF 189");
-    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
-    printk(KERN_ALERT "TIMER STUFF 191");
+    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 ;//+(tv.tv_usec - curr->start_time->tv_usec)/1000;
+  
     mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
     printk(KERN_ALERT "TIMER STUFF 192");
     set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
@@ -380,7 +379,7 @@ static int admission_control(char * input, pid_t * pid_)
   if( input [0]== 'R')
   {
     extract_data(input, pid_ , &period_ , &p_time);
-    printk (KERN_ALERT "New  %d, %lu, %lu", *pid_, period_, p_time);
+    //printk (KERN_ALERT "New  %d, %lu, %lu", *pid_, period_, p_time);
     ratio = (p_time*1000)/(period_);
   }
   else
