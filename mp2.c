@@ -189,8 +189,8 @@ void timer_handler(unsigned long in)
   spin_unlock(&mp2_spinlock);
 
   printk(KERN_ALERT "WAKING UP SCHEDULER");
-  //wake_up_process(dispatcher);
-  scheduler_dispatch( (void * )in);
+  wake_up_process(dispatcher);
+  //scheduler_dispatch( (void * )in);
 }
 
 
@@ -257,9 +257,9 @@ static void yeild( pid_t pid)
 
     printk(KERN_ALERT "TIMER STUFF DONE");
     fin_yeild:
-    //wake_up_process(dispatcher);
-    scheduler_dispatch( (void * )100);
-   //schedule();
+    wake_up_process(dispatcher);
+    //scheduler_dispatch( (void * )100);
+   schedule();
 
 
 }
