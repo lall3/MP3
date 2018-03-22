@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
         printf ( "pid: %u, proc time: %ld ms, result: %d\n", pid, job_process_time, ret);
 		yield(pid);
 	}
-    unreg(pid);
+    //unreg(pid);
 
 	current_time = time(0);
 	printf("pid: %u, end time: %s", pid, ctime(&current_time));
