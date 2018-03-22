@@ -306,8 +306,11 @@ static void schedule_next_task(void)
       running_task->state= READY;
 
     printk(KERN_ALERT "308");
-    sparam.sched_priority=0;
-    sched_setscheduler(running_task->task_, SCHED_NORMAL, &sparam);
+    if(running_task->task_ !=NULL)
+    {
+      sparam.sched_priority=0;
+      sched_setscheduler(running_task->task_, SCHED_NORMAL, &sparam);
+    }
     printk(KERN_ALERT "308");
     if(next_task && next_task->state==READY)
     {
@@ -617,9 +620,7 @@ void __exit mp2_exit(void)
    #endif
    //mutex_lock(&mp2_mutex);
 
-//mem leak_________________FIX!!!!!!!!!!
-  //spin_lock(&mp2_spinlock);
-  //when making list_head, use that name
+
   
   list_for_each_safe(temp1, temp2, &process_list){
     //remove_node_from_list(temp1);
