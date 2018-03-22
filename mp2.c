@@ -288,7 +288,7 @@ static void schedule_next_task(void)
   mp2_t *tmp;
   printk(KERN_ALERT "SCHEDULAR HELPER STARTING");
   running_task= my_current_task;
-  if(my_current_task != NULL )
+  if(my_current_task != NULL && running_task != NULL)
   {
     //printk(KERN_ALERT "291");
     list_for_each_safe(temp1, temp2, &process_list)
