@@ -286,7 +286,6 @@ static void schedule_next_task(void)
   mp2_t *tmp;
   printk(KERN_ALERT "SCHEDULAR HELPER STARTING");
   running_task= my_current_task;
-
   if(my_current_task != NULL)
   {
     printk(KERN_ALERT "291");
@@ -300,12 +299,10 @@ static void schedule_next_task(void)
         break;
       }
     }
-    printk(KERN_ALERT "303");
+    printk(KERN_ALERT "302");
     if(running_task-> state== RUNNING)
       running_task->state= READY;
     sparam.sched_priority=0;
-    }
-    printk(KERN_ALERT "308");
     sched_setscheduler(running_task ->task_, SCHED_NORMAL, &sparam);
     if(next_task && next_task->state==READY)
     {
