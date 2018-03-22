@@ -247,14 +247,14 @@ static void yeild( pid_t pid)
   
     mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
     printk(KERN_ALERT "TIMER STUFF 192");
-    set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
-    my_current_task= NULL;
+    set_task_state(curr->task_, TASK_INTERRUPTIBLE);
+    //my_current_task= NULL;
 
 
     printk(KERN_ALERT "TIMER STUFF DONE");
     fin_yeild:
     wake_up_process(dispatcher);
-    set_current_state(TASK_UNINTERRUPTIBLE);
+    //set_current_state(TASK_UNINTERRUPTIBLE);
     schedule();
 
 
