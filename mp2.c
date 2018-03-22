@@ -342,7 +342,7 @@ static void schedule_next_task(void)
 */
 static int scheduler_dispatch (void * data)
 {
-  /*
+  
   while(1)
   {
     if (kthread_should_stop())
@@ -351,13 +351,13 @@ static int scheduler_dispatch (void * data)
     mutex_lock(&mp2_mutex);
     schedule_next_task();
     mutex_unlock(&mp2_mutex);
-    set_current_state(TASK_UNINTERRUPTIBLE); //might be in yeild
+    set_current_state(TASK_INTERRUPTIBLE); //might be in yeild
     schedule();
     printk(KERN_ALERT "PID %d being scheduled", my_current_task->pid);
   }
 
-  printk(KERN_ALERT "KTHREAD FINISHED");*/
-  set_current_state(TASK_INTERRUPTIBLE);
+  printk(KERN_ALERT "KTHREAD FINISHED");
+  //set_current_state(TASK_INTERRUPTIBLE);
   return 0;
 
 }
