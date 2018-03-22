@@ -326,6 +326,7 @@ static void schedule_next_task(void)
 */
 static int scheduler_dispatch (void * data)
 {
+  /*
   while(1)
   {
     if (kthread_should_stop())
@@ -339,7 +340,7 @@ static int scheduler_dispatch (void * data)
     printk(KERN_ALERT "PID %d being scheduled", my_current_task->pid);
   }
 
-  printk(KERN_ALERT "KTHREAD FINISHED");
+  printk(KERN_ALERT "KTHREAD FINISHED");*/
   return 0;
 
 }
@@ -405,7 +406,7 @@ static void register_helper(char * input)
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
   printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
-  new_task->state = SLEEPING; //changed
+  new_task->state = READY; //changed
   //get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
   new_task->task_ = find_task_by_pid(new_task->pid);
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
@@ -420,17 +421,7 @@ static void register_helper(char * input)
   setup_timer( &new_task->timer_list_ , timer_handler, new_task->pid); 
 
   mutex_lock(&mp2_mutex);
-  /*
-  list_for_each(t ,&process_list){
-    curr= list_entry(t, mp2_t, p_list);
-    if(curr->period > new_task->period)
-    {
-      list_add_tail(&(new_task->p_list), t);
-      mutex_unlock(&mp2_mutex);
-      return;
-    }
-
-  }*/
+  
   list_add(&(new_task->p_list), &process_list);
   mutex_unlock(&mp2_mutex);
 
@@ -572,7 +563,7 @@ int __init mp2_init(void)
    k_cache = KMEM_CACHE(mp2_struct , SLAB_PANIC);
    dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
 
-   _workqueue = create_workqueue("mp2");
+   //_workqueue = create_workqueue("mp2");
 
    spin_lock_init(&mp2_spinlock);
    mutex_init(&mp2_mutex);
