@@ -187,6 +187,8 @@ void timer_handler(unsigned long in)
     printk(KERN_ALERT "woek up %u", curr->pid);
   }
   spin_unlock_irqrestore(&mp2_spinlock, lock_flags);
+
+  printk(KERN_ALERT "WAKING UP SCHEDULER");
   wake_up_process(dispatcher);
 }
 
@@ -343,7 +345,7 @@ static void schedule_next_task(void)
 */
 static int scheduler_dispatch (void * data)
 {
-  
+  printk(KERN_ALERT "STARTING DISPATCHER");
   while(1)
   {
     if (kthread_should_stop())
