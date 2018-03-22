@@ -274,15 +274,15 @@ static void schedule_next_task(void)
   mp2_t *next_task;
   struct sched_param sparam;
 
-  struct list_head* iter;
+  struct list_head* temp1, temp2;
   mp2_t *tmp;
   printk(KERN_ALERT "SCHEDULAR HELPER STARTING");
   running_task= my_current_task;
-  if(my_current_task)
+  if(my_current_task != NULL)
   {
-    list_for_each(iter, &process_list)
+    list_for_each_safe(temp1, temp2, &process_list)
     {
-      tmp = list_entry(iter, mp2_t, p_list);
+      tmp = list_entry(temp1, mp2_t, p_list);
       if(tmp != NULL && tmp->state == READY)
       {
         next_task = tmp;
@@ -306,11 +306,14 @@ static void schedule_next_task(void)
     }
     return;
   }
+
   if(list_empty(&process_list))
     return;
-  list_for_each(iter, &process_list)
+  list_for_each_safe(temp1, temp2, &process_list)
   {
-      tmp = list_entry(iter, mp2_t, p_list);
+      tmp = list_entry(temp1, mp2_t, p_list);
+      printk(KERN_ALERT "finding task to schedule");
+      printk(KERN_ALERT "found %u", tmp->pid);
       if(tmp != NULL && tmp->state == READY)
       {
         next_task = tmp;
