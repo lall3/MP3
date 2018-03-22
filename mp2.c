@@ -182,7 +182,10 @@ void timer_handler(unsigned long in)
 
   spin_lock_irqsave(&mp2_spinlock, lock_flags);
   if(curr != NULL)
+  { 
     curr->state = READY;
+    printk(KERN_ALERT "woek up %u", curr_state->pid);
+  }
   spin_unlock_irqrestore(&mp2_spinlock, lock_flags);
   wake_up_process(dispatcher);
 }
@@ -239,12 +242,12 @@ static void yeild( pid_t pid)
     }
 
     printk(KERN_ALERT "FOUND (PID ) Yeilding");
-    curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
+    //curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
     do_gettimeofday(&tv);
     time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 ;//+(tv.tv_usec - curr->start_time->tv_usec)/1000;
   
     mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
-    printk(KERN_ALERT "TIMER STUFF 192");
+    //printk(KERN_ALERT "TIMER STUFF 192");
     set_task_state(curr->task_, TASK_INTERRUPTIBLE);
     //my_current_task= NULL;
 
