@@ -176,15 +176,13 @@ mp2_t* get_process_node2(pid_t pid_)
 void timer_handler(unsigned long in)
 {
   unsigned long lock_flags;
-  mp2_t * curr= (mp2_t* ) in;
+  mp2_t * curr= get_process_node2(in);
 
   printk(KERN_ALERT "Reached wakeup timer");
 
   spin_lock_irqsave(&mp2_spinlock, lock_flags);
-  if(curr != my_current_task)
-  {
+  if(curr != NULL)
     curr->state = READY;
-  }
   spin_unlock_irqrestore(&mp2_spinlock, lock_flags);
   wake_up_process(dispatcher);
 }
@@ -430,7 +428,7 @@ static void register_helper(char * input)
   new_task->runtime = 0;
 
   
-  setup_timer( &(new_task->timer_list_) , timer_handler, (unsigned long) new_task); 
+  setup_timer( &(new_task->timer_list_) , timer_handler, new_task->pid); 
 
   mutex_lock(&mp2_mutex);
   
