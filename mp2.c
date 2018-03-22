@@ -95,6 +95,7 @@ static int remove_node_from_list(struct list_head* node)
   if(list_empty(&process_list))
     return 0;
   mutex_lock(&mp2_mutex);
+  printk(KERN_ALERT "reving node FROM list");
   container = list_entry(node, mp2_t, p_list);
   if(container == NULL)
     return 0;
@@ -135,12 +136,20 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
     list_for_each_safe(temp1, temp2, &process_list)
     {
       curr=list_entry(temp1 , mp2_t , p_list);
+      printk(KERN_ALERT "trying to get %u", pid_);
       if(pid_ == curr->pid)
       {
         ret = temp1;
+        //added 
+        list_del(temp1);
+        del_timer(&(curr->task_timer));
+        kmem_cache_free(k_cache,curr);
+
+
         break;
       }
     }
+    printk(KERN_ALERT "done getting %u", pid_);
     mutex_unlock(&mp2_mutex);
 }
 
@@ -509,7 +518,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //de register
       get_process_node( _pid_ , &read);
-      remove_node_from_list(&read);
+      //remove_node_from_list(&read);
       printk(KERN_ALERT "DEREGITER: %u", _pid_);
     }
     else
