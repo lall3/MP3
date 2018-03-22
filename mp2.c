@@ -214,7 +214,7 @@ static struct list_head *find_task_node_by_pid(char *pid)
 * yields process
 * helper function , linked to file write
 */
-static void yeild( char * pid)
+static void yeild( pid_t pid)
 {
     mp2_t * curr= NULL;
     struct list_head  * pointer ;
@@ -224,7 +224,7 @@ static void yeild( char * pid)
     //get the pointer to the process
     //pointer = NULL;
 
-    get_process_node2(pid, curr);
+    get_process_node(pid, pointer);
     if(pointer == NULL)
     {
       printk(KERN_ALERT "Herin lies the error");
@@ -433,7 +433,7 @@ static void register_helper(char * input)
   
   struct list_head * t;
   mp2_t * curr;
-  mp2_t * new_task = (struct timeval*)( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
+  mp2_t * new_task = (mp2_t *)( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
   struct timer_list * t_timer;
 
 
@@ -581,7 +581,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     if(cmd== 'R')
     {
       //register
-      add_to_list(t_buffer);
+      register_helper(t_buffer);
       printk(KERN_ALERT "PID %u REGISTERED", _pid_);
     }
     else if(cmd =='Y')
