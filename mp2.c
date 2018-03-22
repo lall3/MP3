@@ -184,7 +184,7 @@ void timer_handler(unsigned long in)
   if(curr != NULL)
   { 
     curr->state = READY;
-    printk(KERN_ALERT "woek up %u", curr_state->pid);
+    printk(KERN_ALERT "woek up %u", curr->pid);
   }
   spin_unlock_irqrestore(&mp2_spinlock, lock_flags);
   wake_up_process(dispatcher);
