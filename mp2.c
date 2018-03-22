@@ -341,7 +341,7 @@ static void schedule_next_task(void)
 */
 static int scheduler_dispatch (void * data)
 {
-  
+  /*
   while(1)
   {
     if (kthread_should_stop())
@@ -355,7 +355,7 @@ static int scheduler_dispatch (void * data)
     printk(KERN_ALERT "PID %d being scheduled", my_current_task->pid);
   }
 
-  printk(KERN_ALERT "KTHREAD FINISHED");
+  printk(KERN_ALERT "KTHREAD FINISHED");*/
   return 0;
 
 }
