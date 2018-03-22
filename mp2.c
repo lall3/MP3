@@ -84,33 +84,6 @@ static int admission_control(char * input, pid_t * pid_);
 //-------------------------------------------------------------------------------------------------------------------------------
 //Helper functions
 static int scheduler_dispatch (void * data);
-/*
-* Removes node during distruction and once process is done executing
-*/
-static int remove_node_from_list(struct list_head* node)
-{
-
-  mp2_t * container;
-  //using mutex for critical code
-  if(list_empty(&process_list))
-    return 0;
-  mutex_lock(&mp2_mutex);
-  printk(KERN_ALERT "reving node FROM list");
-  container = list_entry(node, mp2_t, p_list);
-  if(container == NULL)
-    return 0;
-  if(my_current_task != NULL)
-  {
-    if (my_current_task->pid == container->pid)
-      my_current_task =NULL;
-  }
-  list_del(node);
-  del_timer(&(container->timer_list_));
-  kmem_cache_free(k_cache, container);
-  mutex_unlock(&mp2_mutex);
-
-  return 0;
-}
 
 /*
 * Helper function to parse the input, extracts pid, proc_time, and period
@@ -175,7 +148,6 @@ mp2_t* get_process_node2(pid_t pid_)
 */
 void timer_handler(unsigned long in)
 {
-  unsigned long lock_flags;
   mp2_t * curr= get_process_node2(in);
 
   printk(KERN_ALERT "Reached wakeup timer");
@@ -195,31 +167,6 @@ void timer_handler(unsigned long in)
 
 
 
-static struct list_head *find_task_node_by_pid(char *pid)
-{
-    struct list_head *pos;
-    struct list_head *next;
-    mp2_t *curr;
-    char curr_pid[20];
-
-    mutex_lock(&mp2_mutex);
-
-    list_for_each_safe(pos, next, &process_list){
-        curr = list_entry(pos, mp2_t, p_list);
-        memset(curr_pid, 0, 20);
-        sprintf(curr_pid, "%u", curr->pid);
-        if(strcmp(curr_pid, pid)==0)
-        {
-            mutex_unlock(&mp2_mutex);
-            return pos;
-        }
-    }
-
-    mutex_unlock(&mp2_mutex);
-    return NULL;
-}
-
-
 
 /*
 * yields process
@@ -227,7 +174,6 @@ static struct list_head *find_task_node_by_pid(char *pid)
 */
 static void yeild( pid_t pid)
 {
-    struct list_head  * pointer = NULL;
     unsigned long time_;
     struct timeval tv;
     //printk(KERN_ALERT "Reached Yeild (PID %u)", pid);
@@ -305,13 +251,13 @@ static void schedule_next_task(void)
     if(running_task-> state== RUNNING)
       running_task->state= READY;
 
-    printk(KERN_ALERT "308");
+    //printk(KERN_ALERT "308");
     if(running_task->task_ !=NULL)
     {
       sparam.sched_priority=0;
       sched_setscheduler(running_task->task_, SCHED_NORMAL, &sparam);
     }
-    printk(KERN_ALERT "308");
+    //printk(KERN_ALERT "308");
     if(next_task && next_task->state==READY)
     {
       printk(KERN_ALERT "starting (switching bterween tasks)%u -> %u", my_current_task->pid, next_task->pid);
