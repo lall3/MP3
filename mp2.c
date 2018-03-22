@@ -259,7 +259,7 @@ static void yeild( pid_t pid)
     fin_yeild:
     //wake_up_process(dispatcher);
     //schedule();
-    scheduler_dispatch();
+    scheduler_dispatch((void *) 1000);
 
 
 }
