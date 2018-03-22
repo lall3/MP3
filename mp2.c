@@ -136,11 +136,12 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
     list_for_each_safe(temp1, temp2, &process_list)
     {
       curr=list_entry(temp1 , mp2_t , p_list);
-      printk(KERN_ALERT "trying to get %u", pid_);
+      //printk(KERN_ALERT "trying to get %u", pid_);
       if(pid_ == curr->pid)
       {
         ret = temp1;
         //added 
+        printk(KERN_ALERT "DELETED!!!!!!!!! %u", curr->pid);
         list_del(temp1);
         del_timer(&(curr->timer_list_));
         kmem_cache_free(k_cache,curr);
@@ -149,7 +150,7 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
         break;
       }
     }
-    printk(KERN_ALERT "done getting %u", pid_);
+    //printk(KERN_ALERT "done getting %u", pid_);
     mutex_unlock(&mp2_mutex);
 }
 
