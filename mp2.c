@@ -67,7 +67,7 @@ static struct task_struct * dispatcher; //our thread
 
 //proc file stuff
 static struct proc_dir_entry *proc_dir_mp2, *proc_dir_status ;
-static struct workqueue_struct *_workqueue;
+//static struct workqueue_struct *_workqueue;
 static int lock=0 ;
 
 LIST_HEAD(process_list);

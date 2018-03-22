@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
     current_time = time(0);
     printf("PID: %u start time: %s", pid, ctime(&current_time));
 
-	temp = fprintf(proc, "R, %d, %lu, d", pid, input, 50);
+	temp = fprintf(proc, "R, %d, %lu, %d", pid, input, 50);
 
     factorial();
 
@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 
 
     proc = fopen( "/proc/mp2/status", "r+");
-    while ( (read = getline(&read_line, param , proc )) != -1 )
+    while (  getline(&read_line, param , proc ) != -1 )
     {
         printf("%s\n", read_line);
         param++;
