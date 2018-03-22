@@ -583,7 +583,8 @@ int __init mp2_init(void)
 
    spin_lock_init(&mp2_spinlock);
    mutex_init(&mp2_mutex);
-   dispatcher = kthread_run( scheduler_dispatch , NULL , "dispatcher");
+   dispatcher = kthread_create( scheduler_dispatch , NULL , "dispatcher");
+   get_task_struct(dispatcher);
 
    printk(KERN_ALERT "MP2 MODULE LOADED\n");
    return 0;
