@@ -302,8 +302,10 @@ static void schedule_next_task(void)
     printk(KERN_ALERT "302");
     if(running_task-> state== RUNNING)
       running_task->state= READY;
+    printk(KERN_ALERT "305");
     sparam.sched_priority=0;
     sched_setscheduler(running_task ->task_, SCHED_NORMAL, &sparam);
+    printk(KERN_ALERT "308");
     if(next_task && next_task->state==READY)
     {
       printk(KERN_ALERT "starting (switching bterween tasks)%u -> %u", my_current_task->pid, next_task->pid);
