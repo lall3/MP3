@@ -288,23 +288,23 @@ static void schedule_next_task(void)
   running_task= my_current_task;
   if(my_current_task != NULL)
   {
-    printk(KERN_ALERT "291");
+    //printk(KERN_ALERT "291");
     list_for_each_safe(temp1, temp2, &process_list)
     {
       tmp = list_entry(temp1, mp2_t, p_list);
       if(tmp != NULL && tmp->state == READY)
       {
-        printk(KERN_ALERT "297");
+        //printk(KERN_ALERT "297");
         next_task = tmp;
         break;
       }
     }
-    printk(KERN_ALERT "302");
+    //printk(KERN_ALERT "302");
     if(running_task-> state== RUNNING)
       running_task->state= READY;
     printk(KERN_ALERT "305");
     sparam.sched_priority=0;
-    sched_setscheduler(running_task ->task_, SCHED_NORMAL, &sparam);
+    sched_setscheduler(running_task->task_, SCHED_NORMAL, &sparam);
     printk(KERN_ALERT "308");
     if(next_task && next_task->state==READY)
     {
