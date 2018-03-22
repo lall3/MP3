@@ -247,12 +247,14 @@ static void yeild( pid_t pid)
     printk(KERN_ALERT "FOUND (PID ) Yeilding");
     //curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
     do_gettimeofday(&tv);
-    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 ;//+(tv.tv_usec - curr->start_time->tv_usec)/1000;
+    time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
   
     mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
     //printk(KERN_ALERT "TIMER STUFF 192");
     set_task_state(curr->task_, TASK_INTERRUPTIBLE);
     my_current_task= NULL;
+
+    runtime += time_;
 
 
     printk(KERN_ALERT "TIMER STUFF DONE");
@@ -302,12 +304,12 @@ static void schedule_next_task(void)
     //printk(KERN_ALERT "302");
     if(running_task-> state== RUNNING)
       running_task->state= READY;
-    printk(KERN_ALERT "305");
-    sparam.sched_priority=0;
-    sched_setscheduler(running_task->task_, SCHED_NORMAL, &sparam);
+    
     printk(KERN_ALERT "308");
     if(next_task && next_task->state==READY)
     {
+      sparam.sched_priority=0;
+      sched_setscheduler(running_task->task_, SCHED_NORMAL, &sparam);
       printk(KERN_ALERT "starting (switching bterween tasks)%u -> %u", my_current_task->pid, next_task->pid);
       sparam.sched_priority = MAX_PRIORITY;
       //check order
@@ -475,7 +477,7 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
   list_for_each_entry(container, &process_list, p_list)
   {
      memset(read, 0, 256);//resets read array
-     length= sprintf(read, "%u, %lu, %lu\n", container->pid, container->period, container->proc_time );
+     length= sprintf(read, "%u, %lu, %lu\n", container->pid, container->period, container->runtime );
      ctr += length;
      strcat(read_buffer, read);
   }
