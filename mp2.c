@@ -399,30 +399,27 @@ static void register_helper(char * input)
   
   //struct list_head * t;
   //mp2_t * curr;
-  mp2_t * new_task = (mp2_t *)kmem_cache_alloc(k_cache, GFP_KERNEL);//( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
+  mp2_t * new_task;
+  new_task = (mp2_t *)kmem_cache_alloc(k_cache, GFP_KERNEL);//( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
   //struct timer_list * t_timer;
   INIT_LIST_HEAD(&(new_task->p_list));
 
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
   printk (KERN_ALERT "REGISTERING %u, %lu, %lu", (new_task->pid), (new_task->period), (new_task->proc_time) );
-  new_task->state = READY; //changed
+  new_task->state = SLEEPING; //changed
   //get_process_node(new_task->pid, (struct list_head *)&(new_task->task_));
   new_task->task_ = find_task_by_pid(new_task->pid);
   new_task->start_time = (struct timeval*)( kmalloc(sizeof(struct timeval),GFP_KERNEL) );
   do_gettimeofday(new_task->start_time);
+  new_task->runtime=0;
 
-  /*
-  init_timer(&(new_task->timer_list_));
-  t_timer = &(new_task->timer_list_);
-  t_timer->data = (unsigned long)new_task;
-  t_timer->function = timer_handler;
-  */
-  setup_timer( &new_task->timer_list_ , timer_handler, new_task->pid); 
+  
+  setup_timer( &new_task->timer_list_ , timer_handler, (unsigned long) new_task); 
 
   mutex_lock(&mp2_mutex);
   
-  list_add(&(new_task->p_list), &process_list);
+  list_add_tail(&(new_task->p_list), &process_list);
   mutex_unlock(&mp2_mutex);
 
 }
@@ -514,7 +511,7 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //de register
       get_process_node( _pid_ , &read);
-      //remove_node_from_list(&read);
+      remove_node_from_list(&read);
       printk(KERN_ALERT "DEREGITER: %u", _pid_);
     }
     else
@@ -599,6 +596,8 @@ void __exit mp2_exit(void)
     del_timer( &(temp1->timer_list_) );
     kmem_cache_free(k_cache, temp1);
    }
+
+   INIT_LIST_HEAD(&process_list);
    //spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
    kthread_stop(dispatcher );//check
