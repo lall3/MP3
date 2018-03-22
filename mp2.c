@@ -429,7 +429,7 @@ static void register_helper(char * input)
   
   struct list_head * t;
   mp2_t * curr;
-  mp2_t * new_task = (mp2_t *)kmem_cache_alloc(k_cache, GFP_KERNEL)//( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
+  mp2_t * new_task = (mp2_t *)kmem_cache_alloc(k_cache, GFP_KERNEL);//( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
   struct timer_list * t_timer;
   INIT_LIST_HEAD(&new_task->p_list);
 
