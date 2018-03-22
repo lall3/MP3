@@ -629,8 +629,8 @@ void __exit mp2_exit(void)
   
   list_for_each_entry_safe(temp1, temp2, &process_list, p_list){
     //remove_node_from_list(temp1);
-    list_del(&(mp2_t->p_list));
-    del_timer( &mp2_t->task_timer_ );
+    list_del(&(temp1->p_list));
+    del_timer( &(temp1->task_timer_) );
     kmem_cache_free(k_cache, temp1);
    }
    //spin_unlock(&mp2_spinlock);
