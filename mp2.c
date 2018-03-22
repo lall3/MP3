@@ -507,14 +507,14 @@ static ssize_t pfile_write(struct file *file,const  char __user *buffer, size_t 
     {
       //yeild
       printk(KERN_ALERT "starting %u YEILD", _pid_);
-      yeild(_pid_);
+      //yeild(_pid_);
       printk(KERN_ALERT "PID %u YEILD", _pid_);
     }
     else if(cmd =='D')
     {
       //de register
       get_process_node( _pid_ , &read);
-      remove_node_from_list(&read);
+      //remove_node_from_list(&read);
       printk(KERN_ALERT "DEREGITER: %u", _pid_);
     }
     else
