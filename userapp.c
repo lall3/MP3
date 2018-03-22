@@ -116,6 +116,8 @@ int main(int argc, char* argv[])
 
     yield(pid); //Proc filesystem
 
+    printf("Done yeilding\n");
+
     // real-time loop
     for(i = 0; i < 5; i++) {
 		gettimeofday(&t1, NULL);

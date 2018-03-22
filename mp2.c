@@ -595,7 +595,8 @@ int __init mp2_init(void)
 */
 void __exit mp2_exit(void)
 {
-   mp2_t *temp1, *temp2;
+   struct list_head *temp1, *temp2;
+   mp2_t * curr;
    #ifdef DEBUG
    printk(KERN_ALERT "MP2 MODULE UNLOADING\n");
    #endif
@@ -605,14 +606,15 @@ void __exit mp2_exit(void)
   //spin_lock(&mp2_spinlock);
   //when making list_head, use that name
   
-  list_for_each_entry_safe(temp1, temp2, &process_list, p_list){
+  list_for_each_safe(temp1, temp2, &process_list){
     //remove_node_from_list(temp1);
-    list_del(&(temp1->p_list));
-    del_timer( &(temp1->timer_list_) );
-    kmem_cache_free(k_cache, temp1);
+    curr=list_entry(temp1 , mp2_t , p_list);
+    list_del((temp1));
+    del_timer( &(curr->timer_list_) );
+    kmem_cache_free(k_cache, curr);
    }
 
-   INIT_LIST_HEAD(&process_list);
+   //INIT_LIST_HEAD(&process_list);
    //spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
    kthread_stop(dispatcher );//check
