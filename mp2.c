@@ -225,17 +225,17 @@ static void yeild( pid_t pid)
     if(curr == NULL)
     {
       printk(KERN_ALERT "PID : %u not found while yeilding", pid);
-      goto fin_yeild;
+      return;
     }
 
     printk(KERN_ALERT "FOUND (PID ) Yeilding");
     curr-> state= SLEEPING;printk(KERN_ALERT "TIMER STUFF 187");
     do_gettimeofday(&tv);
-printk(KERN_ALERT "TIMER STUFF 189");
+    printk(KERN_ALERT "TIMER STUFF 189");
     time_= (tv.tv_sec - curr->start_time->tv_sec)*1000 +(tv.tv_usec - curr->start_time->tv_usec)/1000;
-printk(KERN_ALERT "TIMER STUFF 191");
+    printk(KERN_ALERT "TIMER STUFF 191");
     mod_timer(&(curr->timer_list_), jiffies+ msecs_to_jiffies(curr->period - time_));
-printk(KERN_ALERT "TIMER STUFF 192");
+    printk(KERN_ALERT "TIMER STUFF 192");
     set_task_state(curr->task_, TASK_UNINTERRUPTIBLE);
     my_current_task= NULL;
 
@@ -248,32 +248,7 @@ printk(KERN_ALERT "TIMER STUFF 192");
 
 
 }
-/*
-static void yeild(char *pid)
-{
 
-
-  mp2_t *yield_task;
-    struct list_head *yield_pos;
-  struct timeval curr_time;
-  unsigned long actual_proc_time;
-  yield_pos = find_task_node_by_pid(pid);
-    yield_task = list_entry(yield_pos, mp2_t, p_list);
-
-  yield_task->state = SLEEPING;
-  do_gettimeofday(&curr_time);
-  actual_proc_time = (curr_time.tv_sec*1000 - yield_task->start_time->tv_sec*1000) + (curr_time.tv_usec/1000 - yield_task->start_time->tv_usec /1000);
-  mod_timer(&(yield_task->timer_list_), jiffies + msecs_to_jiffies(yield_task->period - actual_proc_time));
-  set_task_state(yield_task->task_, TASK_UNINTERRUPTIBLE);
-  my_current_task = NULL;
-  wake_up_process(dispatcher);
-
-  set_current_state(TASK_UNINTERRUPTIBLE);
-  schedule();
-
-//  return 0;
-}
-*/
 
 
 
