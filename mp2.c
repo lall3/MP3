@@ -254,7 +254,7 @@ static void yeild( pid_t pid)
     set_task_state(curr->task_, TASK_INTERRUPTIBLE);
     my_current_task= NULL;
 
-    runtime += time_;
+    curr->runtime += time_;
 
 
     printk(KERN_ALERT "TIMER STUFF DONE");
@@ -304,7 +304,7 @@ static void schedule_next_task(void)
     //printk(KERN_ALERT "302");
     if(running_task-> state== RUNNING)
       running_task->state= READY;
-    
+
     printk(KERN_ALERT "308");
     if(next_task && next_task->state==READY)
     {
