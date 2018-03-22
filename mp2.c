@@ -84,6 +84,7 @@ static int admission_control(char * input, pid_t * pid_);
 //-------------------------------------------------------------------------------------------------------------------------------
 //Helper functions
 
+static int scheduler_dispatch (void * data);
 /*
 * Removes node during distruction and once process is done executing
 */
