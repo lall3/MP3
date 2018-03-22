@@ -147,22 +147,17 @@ static void get_process_node(pid_t pid_,  struct list_head * ret)
 /*
 * returns pointer to node of given pid as param
 */
-static void get_process_node2(pid_t pid_,  mp2_t * ret)
+mp2_t* get_process_node2(pid_t pid_)
 {
-    struct list_head * temp1, *temp2;
     mp2_t * curr;
-    //ret=NULL;
-    mutex_lock(&mp2_mutex);
-    list_for_each_safe(temp1, temp2, &process_list)
-    {
-      curr=list_entry(temp1 , mp2_t , p_list);
-      if(pid_ == curr->pid)
-      {
-        ret = curr;
-        break;
-      }
+    list_for_each_entry(curr, &process_list, p_list) {
+        if (tmp->pid == pid) {
+            return curr;
+        }
     }
-    mutex_unlock(&mp2_mutex);
+    return NULL;
+
+
 }
 
 /*
@@ -216,7 +211,6 @@ static struct list_head *find_task_node_by_pid(char *pid)
 */
 static void yeild( pid_t pid)
 {
-    mp2_t * curr= NULL;
     struct list_head  * pointer = NULL;
     unsigned long time_;
     struct timeval tv;
@@ -224,7 +218,7 @@ static void yeild( pid_t pid)
     //get the pointer to the process
     //pointer = NULL;
 
-    get_process_node2(pid, curr);
+    mp2_t * curr= get_process_node2(pid);
     
     //pointer = find_task_node_by_pid(pid);
     //curr= list_entry(pointer, mp2_t, p_list);
@@ -427,11 +421,11 @@ static int admission_control(char * input, pid_t * pid_)
 static void register_helper(char * input)
 {
   
-  struct list_head * t;
-  mp2_t * curr;
+  //struct list_head * t;
+  //mp2_t * curr;
   mp2_t * new_task = (mp2_t *)kmem_cache_alloc(k_cache, GFP_KERNEL);//( kmalloc(sizeof(mp2_t),GFP_KERNEL) );//kmem_cache_alloc(k_cache, GFP_KERNEL );
-  struct timer_list * t_timer;
-  INIT_LIST_HEAD(&new_task->p_list);
+  //struct timer_list * t_timer;
+  INIT_LIST_HEAD(&(new_task->p_list));
 
 
   extract_data(input, &(new_task->pid), &(new_task->period), &(new_task->proc_time));
@@ -598,9 +592,10 @@ int __init mp2_init(void)
    my_current_task = NULL;
 
    //add function name
-   dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
    //slab accolator, edit this with proper arguments
-   k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
+   //k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
+   k_cache = KMEM_CACHE(mp2_t , SLAB_PANIC);
+   dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
 
    _workqueue = create_workqueue("mp2");
 
@@ -622,7 +617,7 @@ int __init mp2_init(void)
 */
 void __exit mp2_exit(void)
 {
-   struct list_head *temp1, *temp2;
+   mp2_t *temp1, *temp2;
    #ifdef DEBUG
    printk(KERN_ALERT "MP2 MODULE UNLOADING\n");
    #endif
@@ -632,8 +627,11 @@ void __exit mp2_exit(void)
   //spin_lock(&mp2_spinlock);
   //when making list_head, use that name
   
-  list_for_each_safe(temp1, temp2, &process_list){
-    remove_node_from_list(temp1);
+  list_for_each_entry_safe(temp1, temp2, &process_list){
+    //remove_node_from_list(temp1);
+    list_del(&(mp2_t->p_list));
+    del_timer( &mp2_t->task_timer_ );
+    kmem_cache_free(k_cache, temp1);
    }
    //spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
