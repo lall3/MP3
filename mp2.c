@@ -286,20 +286,26 @@ static void schedule_next_task(void)
   mp2_t *tmp;
   printk(KERN_ALERT "SCHEDULAR HELPER STARTING");
   running_task= my_current_task;
+
   if(my_current_task != NULL)
   {
+    printk(KERN_ALERT "291");
     list_for_each_safe(temp1, temp2, &process_list)
     {
       tmp = list_entry(temp1, mp2_t, p_list);
       if(tmp != NULL && tmp->state == READY)
       {
+        printk(KERN_ALERT "297");
         next_task = tmp;
         break;
       }
     }
+    printk(KERN_ALERT "303");
     if(running_task-> state== RUNNING)
       running_task->state= READY;
     sparam.sched_priority=0;
+    }
+    printk(KERN_ALERT "308");
     sched_setscheduler(running_task ->task_, SCHED_NORMAL, &sparam);
     if(next_task && next_task->state==READY)
     {
