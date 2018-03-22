@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 
 
     proc = fopen( "/proc/mp2/status", "r+");
-    while (  getline(&read_line, param , proc ) != -1 )
+    while (  getline(&read_line, &param , proc ) != -1 )
     {
         printf("%s\n", read_line);
         param++;
