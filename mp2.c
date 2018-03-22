@@ -151,7 +151,7 @@ mp2_t* get_process_node2(pid_t pid_)
 {
     mp2_t * curr;
     list_for_each_entry(curr, &process_list, p_list) {
-        if (tmp->pid == pid) {
+        if (curr->pid == pid_) {
             return curr;
         }
     }
@@ -594,7 +594,7 @@ int __init mp2_init(void)
    //add function name
    //slab accolator, edit this with proper arguments
    //k_cache= kmem_cache_create("k_cache", sizeof(mp2_t) , 0, SLAB_HWCACHE_ALIGN, NULL);
-   k_cache = KMEM_CACHE(mp2_t , SLAB_PANIC);
+   k_cache = KMEM_CACHE(mp2_struct , SLAB_PANIC);
    dispatcher = kthread_create( scheduler_dispatch , NULL , "mp2");
 
    _workqueue = create_workqueue("mp2");
@@ -627,7 +627,7 @@ void __exit mp2_exit(void)
   //spin_lock(&mp2_spinlock);
   //when making list_head, use that name
   
-  list_for_each_entry_safe(temp1, temp2, &process_list){
+  list_for_each_entry_safe(temp1, temp2, &process_list, p_list){
     //remove_node_from_list(temp1);
     list_del(&(mp2_t->p_list));
     del_timer( &mp2_t->task_timer_ );
@@ -635,13 +635,12 @@ void __exit mp2_exit(void)
    }
    //spin_unlock(&mp2_spinlock);
    //mutex_unlock(&mp2_mutex);
-   
+   kthread_stop(dispatcher );//check
+   kmem_cache_destroy(k_cache);
    remove_proc_entry("status", proc_dir_mp2);
    remove_proc_entry("mp2", NULL);
 
 
-   kthread_stop(dispatcher );//check
-   kmem_cache_destroy(k_cache);
 
    mutex_destroy(&mp2_mutex);
   //spin_lock_destroy(&mp2_spinlock);
