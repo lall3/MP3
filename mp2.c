@@ -83,7 +83,7 @@ static int admission_control(char * input, pid_t * pid_);
 */
 //-------------------------------------------------------------------------------------------------------------------------------
 //Helper functions
-
+static int scheduler_dispatch (void * data);
 /*
 * Removes node during distruction and once process is done executing
 */
@@ -189,7 +189,8 @@ void timer_handler(unsigned long in)
   spin_unlock(&mp2_spinlock);
 
   printk(KERN_ALERT "WAKING UP SCHEDULER");
-  wake_up_process(dispatcher);
+  //wake_up_process(dispatcher);
+  scheduler_dispatch( (void * )in);
 }
 
 
@@ -256,8 +257,9 @@ static void yeild( pid_t pid)
 
     printk(KERN_ALERT "TIMER STUFF DONE");
     fin_yeild:
-    wake_up_process(dispatcher);
-    schedule();
+    //wake_up_process(dispatcher);
+    scheduler_dispatch( (void * )100);
+   //schedule();
 
 
 }
