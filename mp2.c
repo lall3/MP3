@@ -204,7 +204,7 @@ static void yeild( pid_t pid)
 
 
     printk(KERN_ALERT "TIMER STUFF DONE");
-    fin_yeild:
+    //fin_yeild:
     wake_up_process(dispatcher);
     set_current_state(TASK_UNINTERRUPTIBLE);
     //scheduler_dispatch( (void * )100);

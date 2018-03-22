@@ -55,17 +55,17 @@ int main(int argc, char* argv[])
 	current_time = time(0);
 	printf("Pid: %u end time: %s", pid, ctime(&current_time));
 
-    proc.close();
+    fclose(proc);
 
 
 
     proc = fopen( "/proc/mp2/status", "r+");
     while ( (read = getline(&read_line, param , proc )) != -1 )
     {
-        printf("%c\n", read_line);
+        printf("%s\n", read_line);
         param++;
     }
-    proc.close();
+    fclose(proc);
 
 
 	return 0;
