@@ -178,6 +178,8 @@ void timer_handler(unsigned long in)
   unsigned long lock_flags;
   mp2_t * curr= (mp2_t* ) in;
 
+  printk(KERN_ALERT "Reached wakeup timer");
+
   spin_lock_irqsave(&mp2_spinlock, lock_flags);
   if(curr != my_current_task)
   {
