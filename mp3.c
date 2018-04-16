@@ -24,6 +24,7 @@
 #include <linux/kthread.h>
 #include <linux/spinlock_types.h>
 #include <linux/cdev.h>
+#include <linux/vmalloc.h>
 
 #define DEBUG 1
 
@@ -81,7 +82,7 @@ static int list_size = 0;
 static unsigned long get_current_time(void){
    struct timeval temp;
    do_gettimeofday(&temp);
-   return usecs_to_jiffies(time.tv_sec * 1000000L + temp.tv_usec);
+   return usecs_to_jiffies(temp.tv_sec * 1000000L + temp.tv_usec);
 }
 
 static void top_half(int arg);
@@ -285,7 +286,7 @@ int __init mp3_init(void)
 
    //proc setup
    proc_dir_mp3 = proc_mkdir( "mp3" ,NULL);
-   proc_dir_status = proc_create("status", 0666, proc_dir_mp3, &mp3_file_ops);
+   proc_dir_status = proc_create("status", 0666, proc_dir_mp3, &mp3_file_fops);
 
 
    work_queue = create_workqueue("work_queue");
@@ -341,7 +342,7 @@ void __exit mp3_exit(void)
    flush_workqueue(work_queue);
    destroy_workqueue(work_queue);
 
-   mutex_destroy(&mp2_mutex);
+   mutex_destroy(&mp3_mutex);
    printk(KERN_ALERT "MP3 MODULE UNLOADED\n");
 }
 
