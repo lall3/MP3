@@ -9,14 +9,17 @@ RM:=rm
 
 all: clean modules app
 
-obj-m:= lall3_mp2.o
-lall3_mp2-y := mp2.o
+obj-m:= lall3_mp3.o
+lall3_mp3-y := mp3.o
 
 modules:
 	$(MAKE) -C $(KERNEL_SRC) M=$(SUBDIR) modules
 
-app: userapp.c userapp.h
-	$(GCC) -o userapp userapp.c
+monitor: monitor.c
+	$(GCC) -o monitor monitor.c
+
+work: work.c
+	$(GCC) -o work work.c
 
 clean:
 	$(RM) -f userapp *~ *.ko *.o *.mod.c Module.symvers modules.order
