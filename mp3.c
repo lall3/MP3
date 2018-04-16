@@ -47,7 +47,7 @@ typedef struct mp3_struct
 }mp3_t;
 
 //gloabls
-static struct proc_dir_entry *proc_dir_mp2, *proc_dir_status ;// procfs
+static struct proc_dir_entry *proc_dir_mp3, *proc_dir_status ;// procfs
 
 static long * virtual_buffer;
 static int virtual_buffer_index = 0;
@@ -81,9 +81,10 @@ static int list_size = 0;
 static unsigned long get_current_time(void){
    struct timeval temp;
    do_gettimeofday(&temp);
-   return usecs_to_jiffies(time.tv_sec * 1000000L + time.tv_usec);
+   return usecs_to_jiffies(time.tv_sec * 1000000L + temp.tv_usec);
 }
 
+static void top_half(int arg);
 /*
 *Bottom half
 *
@@ -146,7 +147,7 @@ static void top_half(int arg)
   if( list_size==1 || (arg && list_size))
   {
     d_work=(struct delayed_work *)kmalloc(sizeof(struct delayed_work), GFP_KERNEL);
-    INIT_DELAYED_WORJ(d_work , delayed_func);
+    INIT_DELAYED_WORK(d_work , delayed_func);
     queue_delayed_work(work_queue , d_work, msecs_to_jiffies(50) );
   }
 
@@ -166,7 +167,7 @@ static void register_pid(int new_pid)
   temp->time_used = temp->major_faults = temp->minor_faults =0;
   temp->current_task = find_task_by_pid(new_pid);
   list_size++;
-  list_add_tail(&(temp->list_node), &(head.list));
+  list_add_tail(&(temp->list_node), &(head.list_node));
   top_half(0);
 }
 
@@ -268,7 +269,7 @@ static ssize_t pfile_read(struct file *file, char __user * buf, size_t count, lo
 
 static const struct file_operations mp3_file_fops = {
   .owner = THIS_MODULE,
-  .read = mp3_read,
+  .read = pfile_read,
   .write = pfile_write,
 };
 
@@ -313,8 +314,8 @@ int __init mp3_init(void)
 */
 void __exit mp3_exit(void)
 {
-   struct mp3_t * pos1, * pos2;
-   mp2_t * curr;
+   struct list_head * pos1, * pos2;
+   mp3_t * curr;
    #ifdef DEBUG
    printk(KERN_ALERT "MP3 MODULE UNLOADING\n");
    #endif
@@ -326,9 +327,10 @@ void __exit mp3_exit(void)
 
    vfree(virtual_buffer);
 
-   list_for_each_entry_safe(pos1, pos2, &head.list_node , list) {
-        list_del(&pos->list);
-        kfree(pos);
+   list_for_each_safe(pos1, pos2, &head.list_node ) {
+        curr= list_entry(pos1, mp3_t , list_node);
+        list_del(pos1);
+        kfree(curr);
     }
   
 
