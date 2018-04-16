@@ -7,7 +7,7 @@ RM:=rm
 
 .PHONY : clean
 
-all: clean modules app
+all: clean modules monitor work
 
 obj-m:= mp3.o
 
