@@ -38,7 +38,7 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("lall3");
-MODULE_DESCRIPTION("CS-423 MP2");
+MODULE_DESCRIPTION("CS-423 MP3");
 
 //MP3 struct
 typedef struct mp3_struct
@@ -107,6 +107,9 @@ static int release_func(struct inode * arg, struct file * arg2)
   return 0;
 }
 
+/*
+* mmpa function as described in doccumentation
+*/
 static int mmap_func(struct file* f, struct vm_area_struct * v )
 {
   int ctr=0;
@@ -143,7 +146,7 @@ static const struct file_operations mp3_mem_ops={
 };
 
 
-
+//function header
 static void top_half(int arg);
 /*
 *Bottom half
@@ -202,6 +205,10 @@ static void delayed_func(void * arg)
 
 }
 
+/*
+*Bottom half
+*
+*/
 static void top_half(int arg)
 {
   struct delayed_work * d_work;
@@ -353,7 +360,7 @@ int __init mp3_init(void)
     idx++;
    }
 
-   register_chrdev(150, "mp3", &mp3_mem_ops);
+   register_chrdev(200, "mp3", &mp3_mem_ops);
   
 
    INIT_LIST_HEAD(&head.list_node);
@@ -387,7 +394,7 @@ void __exit mp3_exit(void)
         kfree(curr);
     }
 
-    unregister_chrdev(150, "mp3");
+    unregister_chrdev(200, "mp3");
   
 
    flush_workqueue(work_queue);
