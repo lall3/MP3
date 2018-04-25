@@ -166,6 +166,7 @@ static void delayed_func(void * arg)
   long mj_ft_ctr, mn_ft_ctr, total_time;
   mj_ft_ctr = mn_ft_ctr = total_time=0;
 
+  printk(KERN_INFO "DELAYED FUNC REACHED");
   spin_lock(&mp3_spinlock);
   list_for_each_safe(temp1, temp2, &head.list_node)
   {
