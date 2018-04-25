@@ -68,15 +68,16 @@ static struct workqueue_struct * work_queue;
 int major_no;
 //struct delayed_work * delay_work;
 //proc
-static int procfs_buffer_size;
+//static int procfs_buffer_size;
 static char procfs_buffer[1024];
 
 
 // Linux Kernel Linked List
+/*
 static mp3_t head;
 static mp3_t *tmp;
 static struct list_head *pos, *q;
-static int list_size = 0;
+static int list_size = 0;*/
 
 
 //LIST HEAD
