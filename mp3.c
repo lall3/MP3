@@ -1,492 +1,370 @@
 #define LINUX
 
-// Kernel
 #include <linux/module.h>
 #include <linux/kernel.h>
-// Kernel Flags
-#include <linux/gfp.h>
-// System Calls
-#include <linux/syscalls.h> 
-#include <linux/fcntl.h>
-// Proc filesystem
 #include <linux/proc_fs.h>
-// Filesystem I/O
-#include <linux/fs.h>
-#include <linux/file.h> 
-#include <linux/buffer_head.h>
-#include <asm/segment.h>
-// Character Device
-#include <linux/cdev.h>
-// WorkQueue
-#include <linux/workqueue.h>
-// Memory
+#include <linux/sched.h>
 #include <linux/slab.h>
-#include <linux/vmalloc.h>
-// Spinlock
-#include <linux/spinlock.h>
-// User Access
-#include <asm/uaccess.h>
-// Timer Libraries
-#include <linux/timer.h>
-#include <linux/jiffies.h>
-// Type Libraries
-#include <linux/types.h>
-// String
-#include <linux/string.h>
+#include <linux/mutex.h>
+#include <linux/pid.h>
+#include <linux/workqueue.h>
+#include <linux/list.h>
+#include <linux/cdev.h>
+#include <linux/mm.h>
 
-// Given Functions
 #include "mp3_given.h"
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Group_ID");
+MODULE_AUTHOR("g18");
 MODULE_DESCRIPTION("CS-423 MP3");
 
-// Global Constants
 #define DEBUG 1
 #define FILENAME "status"
 #define DIRECTORY "mp3"
-#define BUFSIZE 128
-#define SHAREDBUFSIZE (1024*512)
-#define LONGSIZE (sizeof(long))
-#define PAGESIZE 4096
+#define PROCFS_SIZE_MAX 1024
+#define SUCCESS 0
+#define DEV_NAME "mp3_dev"
+#define WORK_FREQ 20
+#define BUFFER_SIZE (256*4096)
 
-/**
- * MP Struct
- * Linux Kernel Linked List Struct
- *
- * list linux kernel linked list
- * linuxtask linux kernel task struct
- * pid user application pid
- * process_usage process utilization
- * maj_flt major fault count
- * min_flt minor fault count
-**/
-typedef struct mp_task_struct {
-  struct list_head list;
-  struct task_struct* linuxtask;
+/* structs */
+typedef struct mp3_task_struct {
+    struct task_struct* linux_task;
+    unsigned long pid;
+    unsigned long major_fc;
+    unsigned long minor_fc;
+    unsigned long util;
+    struct list_head list;
+} mp3_task_struct_t;
 
-  unsigned int pid;
-  unsigned long process_usage;
-  unsigned long maj_flt;
-  unsigned long min_flt; 
-} mp_struct;
 
-//Time Interval Manager
-static unsigned long last_time = 0;
+/* function prototypes */
+static int read_proc_callback (struct file *file, char __user *buffer, size_t count, loff_t *data);
+static int write_proc_callback (struct file *file, const char __user *buffer, size_t count, loff_t *data);
+int register_proc (unsigned long pid);
+int deregister_proc (unsigned long pid);
+void destroy_proc_list(void);
+void delete_task (mp3_task_struct_t *ts);
+static void work_handler(struct work_struct* arg);
+void schedule_work_ours(void);
+void write_to_buffer(void);
+void update_cpu_use(void);
 
-//Character Device Data Struct
-struct cdev cdevdata;
+/* character device functions */
+static int dev_open(struct inode *inode, struct file *file) {return SUCCESS;}
+static int dev_close(struct inode *inode, struct file *file) {return SUCCESS;}
+static int dev_mmap(struct file *file, struct vm_area_struct *vm);
 
-// Virtual Buffer
-static long* shared_buffer;
-static int shared_index = 0;
+/* file operations */
+static const struct file_operations mp3_file = {
+    .owner = THIS_MODULE,
+    .read = read_proc_callback,
+    .write = write_proc_callback,
+};
+static struct file_operations dev_fops = {
+    .owner = THIS_MODULE,
+    .open = dev_open,
+    .release = dev_close,
+    .mmap = dev_mmap
+};
 
-// ProcFS Structs
+/* global variables */
 static struct proc_dir_entry *proc_dir;
 static struct proc_dir_entry *proc_entry;
+static int procfs_buffer_size;
+static char procfs_buffer[PROCFS_SIZE_MAX];
+struct mutex m;
+unsigned long * buffer;
+struct delayed_work * work;
+struct workqueue_struct * queue;
+static struct cdev mp3_cdev;
+int last_sample = 0;
+int major_num;
 
-// Linux Kernel Linked List
-static mp_struct head;
-static mp_struct *tmp;
-static struct list_head *pos, *q;
-static int list_size = 0;
+/* initialize list_head */
+LIST_HEAD(proc_list);
 
-// Semaphore Lock
-static spinlock_t lock;
+static int dev_mmap(struct file *file, struct vm_area_struct *vm) {
+    void *ptr = buffer;
+    unsigned long pfn, size;
+    unsigned long curr = vm->vm_start;
+    unsigned long end = vm->vm_end;
+    unsigned long len = curr - end;
+    int err;
+    
+    pfn = vmalloc_to_page(ptr);
 
-// Interrupt Variables
-static struct workqueue_struct *queue;
+    printk("start mapping dev_mmap\n");
 
-/**
- * Get Current Time in jiffies
- *
- * RETURN current time in jiffies
-**/
-static unsigned long _get_time(void){
-   struct timeval time;
-   do_gettimeofday(&time);
-   return usecs_to_jiffies(time.tv_sec * 1000000L + time.tv_usec);
+    while (curr != end) {
+        vm_insert_page(vm, curr, pfn);
+        curr += PAGE_SIZE;
+        ptr += PAGE_SIZE;
+
+        // get physical page address of the buffer
+        pfn = vmalloc_to_page(ptr);
+    }
+    return SUCCESS;
 }
 
 /**
- * Initializes Work Queue
-**/
-static void _init_workqueue(void){
-  queue = create_workqueue("runtime_updates");
+ * bottom half, write data into buffer
+ * @param arg [description]
+ */
+static void work_handler(struct work_struct * arg){
+    update_cpu_use();
+    write_to_buffer();
+    schedule_work_ours();
+}
+void write_to_buffer(){
+    unsigned long major = 0;
+    unsigned long minor = 0;
+    unsigned long util = 0;
+    unsigned long * write;
+    mp3_task_struct_t* ts = NULL;
+    mp3_task_struct_t* tmp = NULL;
+    
+    mutex_lock(&m);
+    list_for_each_entry_safe(ts, tmp, &proc_list, list) {
+        major += ts->major_fc;
+        minor += ts->minor_fc;
+        util += ts->util;
+    }
+    write = buffer + last_sample*4;
+    *write = jiffies;
+    write[1] = major;
+    write[2] = minor;
+    write[3] = util;
+    last_sample++;
+    mutex_unlock(&m);
+}
+ 
+
+void update_cpu_use(){
+    unsigned long time;
+    unsigned long major;
+    unsigned long minor;
+    unsigned long util;
+    long unsigned int check;
+    int pid;
+
+
+    mp3_task_struct_t* ts = NULL;
+    mp3_task_struct_t* tmp = NULL;
+    
+    mutex_lock(&m);
+
+    list_for_each_entry_safe(ts, tmp, &proc_list, list) {
+        pid = ts->pid;
+        check = get_cpu_use(pid, &minor, &major, &util, &time);
+        if(check==-1){
+            printk(KERN_ALERT  "invalid PID");
+        }
+        ts->util = util;
+        ts->major_fc = major;
+        ts->minor_fc = minor;
+    } 
+    mutex_unlock(&m);
 }
 
 /**
- * Deletes Work Queue
-**/
-static void _del_work_queue(void){
-  if (queue != NULL){
+ * Registration
+ */
+int register_proc (unsigned long pid) {
+
+    //check if list is empty
+    int empty = list_empty_careful(&proc_list); 
+    mp3_task_struct_t *new_mp3_task;
+
+    printk("register %lu \n", pid);
+
+    new_mp3_task = kmalloc(sizeof(mp3_task_struct_t), GFP_KERNEL);
+    new_mp3_task->pid = pid;
+    new_mp3_task->linux_task = find_task_by_pid(pid);
+
+    mutex_lock(&m);
+    list_add_tail(&new_mp3_task->list, &proc_list);
+    mutex_unlock(&m);
+
+    //if list previously empty then create work queue job
+    if (empty){ 
+        schedule_work_ours();
+    }
+    
+   return 0;
+}
+
+void schedule_work_ours(){
+    //printk("schedule work \n");
+    INIT_DELAYED_WORK(work, work_handler);
+    queue_delayed_work(queue, work, HZ/WORK_FREQ);
+}
+
+int deregister_proc (unsigned long pid) {
+    mp3_task_struct_t* ts = NULL;
+    mp3_task_struct_t* tmp = NULL;
+
+    printk("deregister %lu \n", pid);
+
+    mutex_lock(&m);
+    list_for_each_entry_safe(ts, tmp, &proc_list, list) {
+        if (ts->pid == pid){
+             list_del(&ts->list);
+            kfree(ts);
+        }
+    }
+    if (list_empty_careful(&proc_list)) {
+        cancel_delayed_work_sync(work);
+    }
+
+    mutex_unlock(&m);
+    
+    return 0;
+    
+}
+
+static int read_proc_callback (struct file *file, char __user *buffer, size_t count, loff_t *data) {
+    mp3_task_struct_t* ts = NULL;
+    mp3_task_struct_t* tmp =NULL;
+
+    int copied = 0;
+    char* buf = (char*) kmalloc(PROCFS_SIZE_MAX, GFP_KERNEL);
+
+    printk("read callback \n");
+
+    mutex_lock(&m);
+    list_for_each_entry_safe(ts, tmp, &proc_list, list) {
+        copied += sprintf(buf+copied, "%lu\n ", ts->pid);
+    }
+    //send to user buffer
+    copy_to_user(buffer, buf, copied);
+    printk(KERN_INFO "copied = %s\n", buffer);
+    mutex_unlock(&m);
+
+    kfree(buf);
+    return copied;
+}
+
+static int write_proc_callback (struct file *file, const char __user *buffer, size_t count, loff_t *data) {
+    //– For REGISTRATION: “R<PID>”
+    //– For UNREGISTRATION: “U<PID>”
+    unsigned long utilization = 0;
+    unsigned long major_fc = 0;
+    long int pid = 0;
+   
+    procfs_buffer_size = count;
+
+    if (procfs_buffer_size > PROCFS_SIZE_MAX) {
+        procfs_buffer_size = PROCFS_SIZE_MAX;
+    }
+
+    if (copy_from_user(procfs_buffer, buffer, procfs_buffer_size)) {
+        return -EFAULT;
+    }
+    procfs_buffer[count-1] = '\0';
+
+    // parse buffer to long
+    if(strict_strtol(buffer+2, 0, &pid))
+        return -EFAULT;
+    
+    printk("%lu", pid);
+    
+    switch(procfs_buffer[0]) {
+        case 'R': {
+            printk(KERN_INFO "REGISTER %lu \n",pid);
+            if(register_proc(pid)<0) {
+                printk(KERN_ALERT "write_proc_callback:: cannot register process %lu \n", pid);
+                return -EINVAL;
+            }
+            break;
+        }
+        case 'U': {
+            printk(KERN_INFO "UNREGISTER: %lu\n",pid);
+            if(deregister_proc(pid)<0) {
+                printk(KERN_ALERT "write_proc_callback:: Failed to unregister process %lu\n ", pid);
+                return -EINVAL;
+            }
+            break;
+        }
+         default: {   
+            printk(KERN_ALERT "write_proc_callback:: INVALID VALUE\n");
+            return -EINVAL;
+        }
+    }
+    return procfs_buffer_size;
+}
+
+static int __init mp3_init(void) {
+
+    int err = 0;
+    dev_t dev;
+
+ //might refactor my code, I need to double check that our VM runs at 60 jiffies a second
+ //unsigned long ring = 3;
+ //timer(ring);
+
+    mutex_init(&m);
+    
+    // create filesystem entries
+    proc_dir = proc_mkdir(DIRECTORY, NULL);
+    proc_entry = proc_create(FILENAME, 0666, proc_dir, &mp3_file);
+
+    // return error if proc_entry not created
+    if (!proc_entry) {
+        proc_remove(proc_dir);
+        printk(KERN_ALERT "Failed to create entry \\proc\\%s\\%s\n", DIRECTORY, FILENAME);
+        return -ENOMEM;
+    }
+    buffer = vzalloc(BUFFER_SIZE);
+
+    // initialize work/work queue
+    queue =  create_singlethread_workqueue("queue");
+    work = kmalloc(sizeof(struct work_struct),GFP_KERNEL);
+    
+    // initialize character device driver
+    if ((err = alloc_chrdev_region(&dev, 0, 1, DEV_NAME))) {
+        printk("alloc_chrdev_region failed. err num: %d", err);
+        return err;
+    }
+    cdev_init(&mp3_cdev, &dev_fops);
+    if ((err = cdev_add(&mp3_cdev, dev, 1))) {
+        printk("cdev_add failed. err num: %d", err);
+        return err;
+    }
+    
+
+
+    printk(KERN_ALERT "MP3 MODULE LOADED\n");
+    return 0;
+}
+
+static void __exit mp3_exit(void) {
+    dev_t dev;
+
+    printk(KERN_ALERT "MP3 MODULE UNLOADING\n");
+    destroy_proc_list();
+
+    // remove proc filesystem entries
+    proc_remove(proc_entry);
+    proc_remove(proc_dir);
+    vfree(buffer);
+
+    // free workqueue
     flush_workqueue(queue);
-    // Implement the following for any delayed work
-    // cancel_delayed_work_sync(&work);
     destroy_workqueue(queue);
-    queue = NULL;
-    if(DEBUG) printk(KERN_ALERT "DELETED WORKQUEUE\n");
-  }
-}
 
-// Bypass Circular Declaration
-static void _reg_work(int from_bottom_half);
-
-/**
- * Bottom Half
- * Updates Process Usage and fault counts
-**/
-static void update_runtimes(void){
-  int ret;
-  unsigned long utime, stime, current_time;
-  unsigned long maj_flt, min_flt;
-  long all_maj_flt = 0;
-  long allutime = 0;
-  long all_min_flt = 0;
-
-  spin_lock(&lock);
-  list_for_each_safe(pos, q, &head.list){
-    tmp = list_entry(pos, mp_struct, list);
-    ret = get_cpu_use(tmp->pid, &min_flt, &maj_flt, &utime, &stime);
-
-    // Updates information if returned, else delete object
-    if (!ret) {
-      if(stime + utime > 0)
-        if(DEBUG) printk(KERN_ALERT "BOTTOM %d %lu %lu\n",tmp->pid, utime, stime);
-
-      tmp->min_flt = min_flt;
-      tmp->maj_flt = maj_flt;
-      
-      tmp->process_usage = utime + stime;
-      all_min_flt+=tmp->min_flt;
-      all_maj_flt+=tmp->maj_flt;
-      allutime+=tmp->process_usage;
     
-    } else {
-      //Deletes processes that are killed from linked list
-      if(DEBUG) printk(KERN_ALERT "BOTTOM HALF DIDN'T FIND %d\n",tmp->pid);
-      list_del(pos);
-      kfree(tmp);
-      list_size--;
+    // free character device driver
+    dev = mp3_cdev.dev;
+    cdev_del(&mp3_cdev);
     
-    }
-  }
+    unregister_chrdev_region(dev, 1);
 
-  // Store updated information with buffer
-  current_time = _get_time();
-  shared_buffer[shared_index++] = current_time;
-  shared_buffer[shared_index++] = all_min_flt;
-  shared_buffer[shared_index++] = all_maj_flt;
-  
-  // Get the total usage of all processes in terms of jiffies
-  // Loop around shared buffer for monitor to read (48000)
-  shared_buffer[shared_index++] = allutime;// * 100 / (current_time - last_time);
-  shared_index %= 48000;
-  last_time = current_time;
-  spin_unlock(&lock);
+    // destroy proc list
+    destroy_proc_list();
 
-  // Call Top Half if its not empty
-  if(list_size){
-    _reg_work(1);
-  }
-  
-  // Commented out to avoid flooding logs
-  // if(DEBUG) printk(KERN_ALERT "FINISHED UPDATING RUNTIMES\n");
+    printk(KERN_ALERT "MP3 MODULE UNLOADED\n");
 }
 
-/**
- * Top Half
- * Queue delayed work to update process usage and fault counts
- *
- * PARAM from_bottom_half boolean value for if top half is called from bottom half
-**/
-static void _reg_work(int from_bottom_half){
-  if ((from_bottom_half && list_size) || (list_size == 1)) {
-    struct delayed_work *work = (struct delayed_work *)kmalloc(sizeof(struct delayed_work), GFP_KERNEL);
-    if (work) {
-       INIT_DELAYED_WORK((struct delayed_work *) work, update_runtimes);
-       queue_delayed_work(queue, (struct delayed_work *) work, msecs_to_jiffies(1000/20));
-    }
-  }
-}
-
-/**
- * Proc Filesystem
- * Register User Application
- *
- * PARAM user_message string from user
-**/
-static void proc_fs_register(char * user_message) {
-  int pid;
-
-  sscanf(user_message, "R %u", &pid);
-  //Initializes last_time so that it is the correct time apart
-  if(list_size == 0){
-    last_time = _get_time();
-  }
-
-  // Allocate new struct 
-  tmp = (mp_struct *)kmalloc(sizeof(mp_struct), GFP_KERNEL);
-  tmp->pid = pid;
-  tmp->process_usage = 0;
-  tmp->maj_flt = 0;
-  tmp->min_flt = 0;
-  tmp->linuxtask = find_task_by_pid(tmp->pid);
-
-  // Update list_struct
-  list_add_tail(&(tmp->list), &(head.list));
-  list_size++;
-
-  // Call Top Half
-  _reg_work(0);
-
-  if(DEBUG) printk(KERN_ALERT "Registered %d", pid);
-}
-
-/**
- * Proc Filesystem
- * Unregister User Application from RMS
- * Frees mp_struct tied to User Application
- *
- * PARAM user_message string from user
-**/
-static void proc_fs_unregister(char * user_message) {
-  int pid;
-
-  sscanf(user_message, "U %u", &pid);
-
-  // Loop through looking for correct mp_struct
-  list_for_each_safe(pos, q, &head.list) {
-    tmp = list_entry(pos, mp_struct, list);
-
-    // Unregister + Free Memory
-    if(tmp->pid == pid) {
-      if(DEBUG) printk(KERN_INFO "PROCESS: %d UNREGISTERING", pid);
-
-      // Free Memory
-      list_del(pos);
-      list_size--;
-      kfree(tmp);
-      tmp = NULL;
-      
-      if(DEBUG) printk(KERN_ALERT "PROCESS: %d UNREGISTERED PROPERLY\n", pid);
-      return;
-    }
-  }
-
-  if (list_size == 0) {
-    _del_work_queue();
-  }
-}
-
-/**
- * Proc Filesystem
- * Loops through mp_struct list printing all mp_structs to user
- *
- * RETURN number of bytes left in buffer
-**/
-static ssize_t mp3_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos){
-  int retval;
-  if(DEBUG) printk(KERN_INFO "SENDING PIDS");
-  
-  //If ppos > 0, then that means this is the second time being called and all data has been sent 
-  //If list_size == 0, that means the list is empty and we should return immediately
-  if((int)*ppos > 0 || !list_size) { 
-    return 0; 
-  }
-
-  // Loops through mp_struct list
-  spin_lock(&lock);
-  list_for_each_safe(pos, q, &head.list){
-    // Generate string
-    char my_buf[BUFSIZE];
-    tmp = list_entry(pos, mp_struct, list);
-    sprintf(my_buf,"%d\n", tmp->pid);
-
-    // Copy to buffer
-    if(DEBUG) printk(KERN_INFO "SENDING %s\n", my_buf);
-    if (copy_to_user(buffer + *ppos, my_buf, strlen(my_buf)+1)) {
-      return -EFAULT;
-    }
-
-    // Update position
-    *ppos += strlen(my_buf);
-  }
-  spin_unlock(&lock);
-
-  //Makes sure that retval is not 0 and it is less than count so that buffer is sent back as intended
-  retval = count - *ppos;
-  if(DEBUG) printk(KERN_INFO "SENT PIDS");
-  return retval;
-}
-
-/**
- * Proc Filesystem
- * Recieves PID from user and inits new mp_struct struct
- *
- * RETURN copied data count
-**/
-static ssize_t mp3_write(struct file *file, const char __user *buffer, size_t count, loff_t *data){
-  int to_copy;
-  char user_message[count];
-  if(DEBUG) printk(KERN_INFO "RECEIVING PID");
-
-  // Initialize memory for new linked list object
-  to_copy = copy_from_user(user_message, buffer, count);
-
-  // Proc FS systems
-  spin_lock(&lock);
-  switch(user_message[0]) {
-    case 'R' :
-      proc_fs_register(user_message);
-      break;
-    case 'U' :
-      proc_fs_unregister(user_message);
-      break;
-  }
-  spin_unlock(&lock);
-  if(DEBUG) printk(KERN_ALERT "PROCESS %c", user_message[0]);
-
-  *data += count - to_copy;
-  return count - to_copy;
-}
-
-/**
- * Proc Filesystem
- * Function Setup
-**/
-static const struct file_operations mp_file_fops = {
-  .owner = THIS_MODULE,
-  .read = mp3_read,
-  .write = mp3_write,
-};
-
-/**
- * Shared Buffer Filesystem
-**/
-static int mp3_open(struct inode *inode, struct file *file){
-  if(DEBUG) printk(KERN_INFO "MP3 OPEN\n");
-  return 0;
-}
-
-static int mp3_release(struct inode *inode, struct file *file){
-  if(DEBUG) printk(KERN_INFO "MP3 RELEASE\n");
-  return 0;
-}
-
-static int mp3_mmap(struct file *file, struct vm_area_struct * vm_area){
-  int ctr;
-  unsigned long pfn;
-
-  if(DEBUG) printk(KERN_INFO "MP3 MMAP\n");
-  
-  ctr=0;
-  for(;ctr < 128; ctr++){
-    if(DEBUG) printk(KERN_INFO "MMAP LOOP %d\n", ctr);
-    
-    pfn = vmalloc_to_pfn((char *)(shared_buffer)+ctr*PAGESIZE);
-    
-    if(remap_pfn_range(vm_area,(unsigned long)(vm_area->vm_start)+ctr*PAGESIZE,pfn,PAGE_SIZE,PAGE_SHARED)){
-      if(DEBUG) printk(KERN_INFO "REMAPPING FAILED\n");
-      return -1;
-    }
-  }
-
-  if(DEBUG) printk(KERN_INFO "END MP3 MMAP\n");
-
-  return 0;
-}
-
-static const struct file_operations mp_mmap_fops = {
-  .owner = THIS_MODULE,
-  .open = mp3_open,
-  .release = mp3_release,
-  .mmap = mp3_mmap,
-};
-
-/**
- * Module Constructor
- * Called when the module is loaded
- * Initializes all necessary variables and allocates necessary memory
-**/
-int __init mp3_init(void)
-{
-  int ctr;
-
-  #ifdef DEBUG
-  if(DEBUG) printk(KERN_INFO "MODULE LOADING\n");
-  #endif
-
-  // Initialize spinlock
-  spin_lock_init(&lock);
-  if(DEBUG) printk(KERN_INFO "INITIALIZED SPINLOCK\n");
-
-  // Allocate Virtual Buffer and init to -1
-  shared_buffer = vmalloc(SHAREDBUFSIZE);
-  ctr=0;
-  for(;ctr < SHAREDBUFSIZE/LONGSIZE;ctr++){
-     shared_buffer[ctr] = -1;
-  }
-
-  // Creates Character Device Driver and adds to Kernel
-  //cdev_init(&cdevdata, &mp_mmap_fops);
-  //ret = cdev_add(&cdevdata, 150, 1);
-  //if(DEBUG && ret<0) printk(KERN_INFO "ADDING CDEV FAILED\n");
-  register_chrdev(150,"node",&mp_mmap_fops);
-
-  // Creates /proc/mp2/status
-  proc_dir = proc_mkdir(DIRECTORY, NULL);
-  proc_entry = proc_create(FILENAME, 0666, proc_dir, &mp_file_fops);  
-  if(DEBUG) printk(KERN_INFO "CREATED ProcFS\n");
-
-  // Initializes mp_struct head
-  INIT_LIST_HEAD(&head.list);
-  if(DEBUG) printk(KERN_INFO "INITIALIZE mp_struct head\n");
-
-  // Initialize Workqueue
-  _init_workqueue();
-
-  if(DEBUG) printk(KERN_ALERT "MODULE LOADED\n");
-  return 0;   
-}
-
-/**
- * Module Destructor
- * Called when the module is unloaded
- * Destroys all necessary variables and frees used memory
-**/
-void __exit mp3_exit(void)
-{
-  #ifdef DEBUG
-  if(DEBUG) printk(KERN_ALERT "MODULE UNLOADING\n");
-  #endif
-
-  // Free Buffer
-  vfree(shared_buffer);
-
-  // Frees work queue
-  _del_work_queue();
-
-  // Deletes Character Device Driver from Kernel
-  //cdev_del(&cdevdata);
-  unregister_chrdev(150,"node");
-
-  // Deletes /proc/mp3/status
-  proc_remove(proc_entry);
-  proc_remove(proc_dir);
-  if(DEBUG) printk(KERN_INFO "DELETED ProcFS\n");
-
-  // Frees mp_struct memory   
-  list_for_each_safe(pos, q, &head.list){
-    tmp = list_entry(pos, mp_struct, list);
-    list_del(pos);
-    kfree(tmp);
-  }
-  if(DEBUG) printk(KERN_INFO "DELETED struct\n");
-
-  if(DEBUG) printk(KERN_ALERT "MODULE UNLOADED\n");
-}
-
-// Register init and exit functions
 module_init(mp3_init);
 module_exit(mp3_exit);
