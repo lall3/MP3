@@ -25,7 +25,13 @@
 #include <linux/spinlock_types.h>
 #include <linux/cdev.h>
 #include <linux/vmalloc.h>
-
+#include <linux/syscalls.h> 
+//added for mp3
+#include <linux/fs.h>
+#include <linux/file.h> 
+#include <linux/buffer_head.h>
+#include <asm/segment.h>
+#include <linux/fcntl.h>
 #define DEBUG 1
 
 
