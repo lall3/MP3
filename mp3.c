@@ -11,6 +11,34 @@
 #include <linux/list.h>
 #include <linux/cdev.h>
 #include <linux/mm.h>
+#include <linux/timer.h>
+#include <linux/proc_fs.h>
+#include <linux/list.h>
+#include <linux/gfp.h> // flags
+#include <linux/jiffies.h>
+#include <linux/types.h>
+#include <linux/unistd.h>
+#include <linux/workqueue.h>
+#include <linux/string.h>
+#include <asm/uaccess.h>
+#include <linux/slab.h>
+#include <linux/sched.h>
+#include <linux/mutex.h>
+#include <linux/spinlock.h>
+#include <linux/string.h>
+#include <linux/spinlock.h>
+#include <linux/kthread.h>
+#include <linux/spinlock_types.h>
+#include <linux/cdev.h>
+#include <linux/vmalloc.h>
+#include <linux/syscalls.h> 
+//added for mp3
+#include <linux/fs.h>
+#include <linux/file.h> 
+#include <linux/buffer_head.h>
+#include <asm/segment.h>
+#include <linux/fcntl.h>
+
 
 #include "mp3_given.h"
 
