@@ -67,18 +67,10 @@ static spinlock_t mp3_spinlock;
 static unsigned long time_counter =0;
 static struct workqueue_struct * work_queue;
 int major_no;
-//struct delayed_work * delay_work;
-//proc
-//static int procfs_buffer_size;
+
 static char procfs_buffer[1024];
 
 
-// Linux Kernel Linked List
-/*
-
-static mp3_t *tmp;
-static struct list_head *pos, *q;
-*/
 
 static int list_size = 0;
 static mp3_t head;
@@ -213,7 +205,7 @@ static void delayed_func(void * arg)
 static void top_half(int arg)
 {
   struct delayed_work * d_work;
-  if( list_size==1 || (arg && list_size))
+  if( list_size==1 || (arg && list_size>0))
   {
     d_work=(struct delayed_work *)kmalloc(sizeof(struct delayed_work), GFP_KERNEL);
     INIT_DELAYED_WORK((struct delayed_work *) d_work , delayed_func);
@@ -257,13 +249,6 @@ static void unregister_pid(int new_pid)
     }
   }
 
-  /*if(list_size==0)
-  {
-    flush_workqueue(work_queue);
-    destroy_workqueue(work_queue);
-    work_queue=NULL;
-
-  }*/
 }
 
 /*
@@ -368,7 +353,7 @@ int __init mp3_init(void)
     idx++;
    }
 
-   register_chrdev(150, "MP3", &mp3_mem_ops);
+   register_chrdev(150, "mp3", &mp3_mem_ops);
   
 
    INIT_LIST_HEAD(&head.list_node);
@@ -402,12 +387,8 @@ void __exit mp3_exit(void)
         kfree(curr);
     }
 
-    unregister_chrdev(150, "MP3");
+    unregister_chrdev(150, "mp3");
   
-
-   /*
-   dev_t dev;
-  cdev_del(&char_device);*/
 
    flush_workqueue(work_queue);
    destroy_workqueue(work_queue);
