@@ -9,7 +9,8 @@ RM:=rm
 
 all: clean modules monitor work
 
-obj-m:= mp3.o
+obj-m := lall3_mp3.o
+lall3_mp3-y := mp3.o 
 
 
 modules:
