@@ -368,7 +368,7 @@ int __init mp3_init(void)
     idx++;
    }
 
-   register_chrdev(150, "MP3", &mp3_mem_ops);
+   register_chrdev(150, "node", &mp3_mem_ops);
   
 
    INIT_LIST_HEAD(&head.list_node);
@@ -403,7 +403,7 @@ void __exit mp3_exit(void)
         kfree(curr);
     }
 
-    unregister_chrdev(150, "MP3");
+    unregister_chrdev(150, "node");
   
 
    /*
