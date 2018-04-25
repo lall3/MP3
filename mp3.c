@@ -85,6 +85,62 @@ static unsigned long get_current_time(void){
    return usecs_to_jiffies(temp.tv_sec * 1000000L + temp.tv_usec);
 }
 
+
+/*
+* open function
+*/
+static int open_func(struct inode * arg, struct file * arg2)
+{
+  printk(KERN_INFO "Open function reached");
+  return 0;
+}
+
+/*
+* release function
+*/
+static int release_func(struct inode * arg, struct file * arg2)
+{
+  printk(KERN_INFO "Release function reached");
+  return 0;
+}
+
+static int mmap_func(struct file* f, struct vm_area_struct * v )
+{
+  int ctr=0;
+  unsigned long ptr;
+  int tmp;
+
+  printk(KERN_INFO "Remap function reached");
+  for (ctr =0 ; ctr<128 ; ctr++)
+  {
+    ptr= vmalloc_to_pfn( (char *)(virtual_buffer)+ctr*4096 ); //check the value. Assumed pagesize is 4096
+    tmp = remap_pfn_range(v, (unsigned long)(v->vm_start)+ctr*4096, ptr, PAGE_SIZE, PAGE_SHARED  );
+
+    if(tmp)
+    {
+      printk(KERN_ALERT "remmap failure");
+      return -1;
+    }
+
+  }
+  printk(KERN_INFO "Remap function done");
+  return 0;
+
+}
+
+
+
+
+static const struct file_operations mp3_mem_ops={
+  .owner = THIS_MODULE,
+  .open = open_func,
+  .release = release_func,
+  .mmap = mmap_func,
+
+};
+
+
+
 static void top_half(int arg);
 /*
 *Bottom half
@@ -189,13 +245,13 @@ static void unregister_pid(int new_pid)
     }
   }
 
-  if(list_size==0)
+  /*if(list_size==0)
   {
     flush_workqueue(work_queue);
     destroy_workqueue(work_queue);
     work_queue=NULL;
 
-  }
+  }*/
 }
 
 /*
@@ -300,6 +356,7 @@ int __init mp3_init(void)
     idx++;
    }
 
+   register_chrdev(150, "MP3", &mp3_mem_ops);
 	
 
    INIT_LIST_HEAD(&head.list_node);
@@ -333,6 +390,8 @@ void __exit mp3_exit(void)
         list_del(pos1);
         kfree(curr);
     }
+
+    unregister_chrdev(150, "MP3");
   
 
    /*
