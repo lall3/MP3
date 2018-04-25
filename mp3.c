@@ -215,7 +215,7 @@ static void top_half(int arg)
   if( list_size==1 || (arg && list_size))
   {
     d_work=(struct delayed_work *)kmalloc(sizeof(struct delayed_work), GFP_KERNEL);
-    INIT_DELAYED_WORK((struct delayed_work *) d_work , delayed_func);
+    INIT_DELAYED_WORK((struct delayed_work *) d_work , &delayed_func);
     queue_delayed_work(work_queue , d_work, msecs_to_jiffies(50) );
   }
 
