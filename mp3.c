@@ -97,14 +97,7 @@ static int open_func(struct inode * arg, struct file * arg2)
   return 0;
 }
 
-/*
-* release function
-*/
-static int release_func(struct inode * arg, struct file * arg2)
-{
-  printk(KERN_INFO "Release function reached");
-  return 0;
-}
+
 
 /*
 * mmpa function as described in doccumentation
