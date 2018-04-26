@@ -113,13 +113,6 @@ static int mmap_func(struct file* f, struct vm_area_struct * v )
   {
     ptr= vmalloc_to_pfn( (char *)(virtual_buffer)+ctr*4096 ); //check the value. Assumed pagesize is 4096
     tmp = remap_pfn_range(v, (unsigned long)(v->vm_start)+ctr*4096, ptr, PAGE_SIZE, PAGE_SHARED  );
-
-    if(tmp)
-    {
-      printk(KERN_ALERT "remmap failure");
-      return -1;
-    }
-
   }
   printk(KERN_INFO "Remap function done");
   return 0;
