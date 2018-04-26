@@ -68,8 +68,7 @@ static unsigned long time_counter =0;
 static struct workqueue_struct * work_queue;
 int major_no;
 
-static char procfs_buffer[1024];
-
+long time_step_= 1000000L;
 
 
 static int list_size = 0;
@@ -85,7 +84,7 @@ static mp3_t head;
 static unsigned long get_current_time(void){
    struct timeval temp;
    do_gettimeofday(&temp);
-   return usecs_to_jiffies(temp.tv_sec * 1000000L + temp.tv_usec);
+   return usecs_to_jiffies(temp.tv_sec * time_step_ + temp.tv_usec);
 }
 
 
@@ -140,7 +139,7 @@ static int mmap_func(struct file* f, struct vm_area_struct * v )
 static const struct file_operations mp3_mem_ops={
   .owner = THIS_MODULE,
   .open = open_func,
-  .release = release_func,
+  .release = open_func,
   .mmap = mmap_func,
 
 };
@@ -194,14 +193,14 @@ static void delayed_func(void * arg)
   virtual_buffer[virtual_buffer_index+2]= mj_ft_ctr;
   virtual_buffer[virtual_buffer_index+3]= total_time;
   virtual_buffer_index += 4;
-  virtual_buffer_index %= 48000;
+  virtual_buffer_index %= 48000; //48000 is page size
   time_counter = curr_time;
   spin_unlock(&mp3_spinlock);
 
   if(list_size)
     top_half(1);
 
-
+  return;
 
 }
 
@@ -212,7 +211,7 @@ static void delayed_func(void * arg)
 static void top_half(int arg)
 {
   struct delayed_work * d_work;
-  if( list_size==1 || (arg && list_size>0))
+  if( list_size>0 )
   {
     d_work=(struct delayed_work *)kmalloc(sizeof(struct delayed_work), GFP_KERNEL);
     INIT_DELAYED_WORK((struct delayed_work *) d_work , delayed_func);
@@ -354,7 +353,7 @@ int __init mp3_init(void)
    spin_lock_init(&mp3_spinlock);
    mutex_init(&mp3_mutex);
    virtual_buffer = vmalloc(512*1024); 
-   while(idx< 512*1024/(sizeof(long) ))
+   while( idx< 512*1024/(sizeof(long) ))
    {
     virtual_buffer[idx]=-1;
     idx++;
